@@ -120,12 +120,23 @@ EmailService.send(
 EmailService.notify(
   'New booking: ' + fullName + ' — Unit ' + unitNumber,
   'New booking received.\n\n'
-    + 'Name:    ' + fullName + '\n'
-    + 'Email:   ' + email + '\n'
-    + 'Phone:   ' + phoneNumber + '\n'
-    + 'Unit:    ' + unitNumber + '\n'
-    + (issueDescription ? 'Issue:   ' + issueDescription + '\n' : '')
-    + '\nIntake form link sent to customer.'
+    + 'Name: '  + fullName    + '\n'
+    + 'Email: ' + email       + '\n'
+    + 'Phone: ' + phoneNumber + '\n'
+    + 'Unit: '  + unitNumber  + '\n'
+    + (issueDescription ? 'Issue: ' + issueDescription + '\n' : '')
+    + '\nIntake form link has been sent to the customer.',
+  {
+    htmlBody: '<p><strong>New booking received.</strong></p>'
+      + '<p>'
+      +   'Name: '  + fullName    + '<br>'
+      +   'Email: ' + email       + '<br>'
+      +   'Phone: ' + phoneNumber + '<br>'
+      +   'Unit: '  + unitNumber  + '<br>'
+      +   (issueDescription ? 'Issue: ' + issueDescription + '<br>' : '')
+      + '</p>'
+      + '<p>Intake form link has been sent to the customer.</p>',
+  }
 );
 
 return respond(200, { received: true, email: email });
