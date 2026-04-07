@@ -26,13 +26,14 @@ var EmailService = (function () {
    * Sends a notification email to the configured admin address.
    * @param {string} subject
    * @param {string} body
+   * @param {Object} [options] - Optional: { htmlBody, cc, bcc, replyTo }
    */
-  function notify(subject, body) {
+  function notify(subject, body, options) {
     if (!CONFIG.NOTIFICATION_EMAIL) {
       Logger.log('EmailService.notify: NOTIFICATION_EMAIL is not set — skipping internal notification.');
       return;
     }
-    send(CONFIG.NOTIFICATION_EMAIL, subject, body);
+    send(CONFIG.NOTIFICATION_EMAIL, subject, body, options);
   }
 
   return { send: send, notify: notify };
