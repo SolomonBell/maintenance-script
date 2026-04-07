@@ -71,11 +71,8 @@ return respond(200, { received: true });
   return respond(401, { error: 'Unauthorized' });
   }
 
-```
 // 2. Validate required booking fields.
-```
 
-```
 var required = ['fullName', 'phoneNumber', 'unitNumber', 'email'];
 for (var i = 0; i < required.length; i++) {
   if (!payload[required[i]] || payload[required[i]].trim() === '') {
@@ -122,7 +119,6 @@ EmailService.notify(
 );
 
 return respond(200, { received: true, email: email });
-```
 
 }
 
