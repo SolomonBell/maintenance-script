@@ -26,9 +26,11 @@ var CONFIG = {
   // Intake Form (REAL VALUES)
   INTAKE_FORM_ID: 'FORM_PUBLIC_ID_REMOVED',
   INTAKE_FORM_FIELDS: {
-    FULL_NAME:         'entry.XXXXXXXXX',
-    PHONE_NUMBER:      'entry.XXXXXXXXX',
-    UNIT_NUMBER:       'entry.XXXXXXXXX',
-    ISSUE_DESCRIPTION: 'entry.XXXXXXXXX',
+    FULL_NAME:    'entry.XXXXXXXXX',
+    PHONE_NUMBER: 'entry.XXXXXXXXX',
+    UNIT_NUMBER:  'entry.XXXXXXXXX',
+    EMAIL:        'entry.XXXXXXXXX',
+    REQUEST_TYPE: 'entry.XXXXXXXXX',
+    NOTES:        'entry.XXXXXXXXX',
   },
 };

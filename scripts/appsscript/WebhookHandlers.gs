@@ -57,7 +57,6 @@ return respond(200, { received: true });
 * phoneNumber      {string} - Customer's phone number.
 * unitNumber       {string} - Unit/apartment number.
 * email            {string} - Customer's email address.
-* issueDescription {string} - Optional. Pre-fills the Issue Description form field.
 *
 * @param {Object} payload - Parsed JSON body from doPost.
 * @returns {TextOutput}
@@ -80,16 +79,18 @@ for (var i = 0; i < required.length; i++) {
   }
 }
 
-var fullName = payload.fullName.trim();
-var phoneNumber = payload.phoneNumber.trim();
-var unitNumber = payload.unitNumber.trim();
-var email = payload.email.trim();
-var issueDescription = (payload.issueDescription || '').trim();
+var fullName        = payload.fullName.trim();
+var phoneNumber     = payload.phoneNumber.trim();
+var unitNumber      = payload.unitNumber.trim();
+var email           = payload.email.trim();
+var bookedDate      = (payload.bookedDate      || '').trim();
+var bookedTime      = (payload.bookedTime      || '').trim();
+var calendarEventId = (payload.calendarEventId || '').trim();
 
-Logger.log('handlePipedream: event=' + (payload.event || 'unspecified') + ' email=' + email);
+Logger.log('handlePipedream: event=' + (payload.event || 'unspecified') + ' email=' + email + ' calendarEventId=' + calendarEventId);
 
 // 3. Build the pre-filled intake form URL.
-var formUrl = FormHandlers.buildPrefilledUrl(fullName, phoneNumber, unitNumber, issueDescription);
+var formUrl = FormHandlers.buildPrefilledUrl(fullName, phoneNumber, unitNumber, email);
 
 // 4. Send the email to the customer.
 EmailService.send(
@@ -124,7 +125,6 @@ EmailService.notify(
     + 'Email: ' + email       + '\n'
     + 'Phone: ' + phoneNumber + '\n'
     + 'Unit: '  + unitNumber  + '\n'
-    + (issueDescription ? 'Issue: ' + issueDescription + '\n' : '')
     + '\nIntake form link has been sent to the customer.',
   {
     htmlBody: '<p><strong>New booking received.</strong></p>'
@@ -133,7 +133,6 @@ EmailService.notify(
       +   'Email: ' + email       + '<br>'
       +   'Phone: ' + phoneNumber + '<br>'
       +   'Unit: '  + unitNumber  + '<br>'
-      +   (issueDescription ? 'Issue: ' + issueDescription + '<br>' : '')
       + '</p>'
       + '<p>Intake form link has been sent to the customer.</p>',
   }

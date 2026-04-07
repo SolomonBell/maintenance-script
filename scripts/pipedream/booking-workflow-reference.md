@@ -75,6 +75,15 @@ export default defineComponent({
     const phoneNumber = phoneMatch?.[1]?.trim();
     const unitNumber  = unitMatch?.[1]?.trim();
 
+    // Booking date, time, and calendar event ID — from structured event fields.
+    // dateTime is present for timed events; date is present for all-day events.
+    const bookedDateTime    = event.start.dateTime || null;
+    const calendarEventId   = event.id || '';
+    const bookedDate        = bookedDateTime ? bookedDateTime.slice(0, 10) : (event.start.date || '');
+    const bookedTime        = bookedDateTime ? bookedDateTime.slice(11, 16) : '';
+    // Note: bookedTime reflects the timezone offset stored in the Calendar event
+    // (i.e. the customer's selected local time). Do not convert to UTC.
+
     // Fail loudly — do not send a broken payload to GAS.
     const missing = [];
     if (!email)       missing.push('email');
@@ -89,7 +98,7 @@ export default defineComponent({
       );
     }
 
-    return { email, fullName, phoneNumber, unitNumber };
+    return { email, fullName, phoneNumber, unitNumber, bookedDate, bookedTime, calendarEventId };
   }
 });
 ```
@@ -116,12 +125,15 @@ export default defineComponent({
 
 ```json
 {
-  "event":       "booking.created",
-  "secret":      "{{process.env.GAS_PIPEDREAM_SECRET}}",
-  "fullName":    "{{steps.extract_booking_fields.$return_value.fullName}}",
-  "phoneNumber": "{{steps.extract_booking_fields.$return_value.phoneNumber}}",
-  "unitNumber":  "{{steps.extract_booking_fields.$return_value.unitNumber}}",
-  "email":       "{{steps.extract_booking_fields.$return_value.email}}"
+  "event":           "booking.created",
+  "secret":          "{{process.env.GAS_PIPEDREAM_SECRET}}",
+  "fullName":        "{{steps.extract_booking_fields.$return_value.fullName}}",
+  "phoneNumber":     "{{steps.extract_booking_fields.$return_value.phoneNumber}}",
+  "unitNumber":      "{{steps.extract_booking_fields.$return_value.unitNumber}}",
+  "email":           "{{steps.extract_booking_fields.$return_value.email}}",
+  "bookedDate":      "{{steps.extract_booking_fields.$return_value.bookedDate}}",
+  "bookedTime":      "{{steps.extract_booking_fields.$return_value.bookedTime}}",
+  "calendarEventId": "{{steps.extract_booking_fields.$return_value.calendarEventId}}"
 }
 ```
 
