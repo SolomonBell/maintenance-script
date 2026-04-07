@@ -74,32 +74,3 @@ var Utils = (function () {
     splitFullName: splitFullName,
   };
 })();
-
-function debugSpreadsheetAccess() {
-  var id = CONFIG.SPREADSHEET_ID;
-  Logger.log('SPREADSHEET_ID value: [' + id + ']');
-  Logger.log('SPREADSHEET_ID length: ' + (id ? id.length : 'null/undefined'));
-
-  if (!id) {
-    Logger.log('RESULT: SPREADSHEET_ID is null or empty');
-    return;
-  }
-
-  try {
-    var ss = SpreadsheetApp.openById(id);
-    Logger.log('Spreadsheet opened OK: ' + ss.getName());
-  } catch (err) {
-    Logger.log('RESULT: openById failed — ' + err.message);
-    return;
-  }
-
-  var sheetName = CONFIG.BOOKINGS_SHEET_NAME;
-  Logger.log('Looking for sheet tab: [' + sheetName + ']');
-  var sheet = ss.getSheetByName(sheetName);
-
-  if (!sheet) {
-    Logger.log('RESULT: Sheet tab not found');
-  } else {
-    Logger.log('RESULT: Sheet tab found OK');
-  }
-}
