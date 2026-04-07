@@ -138,6 +138,28 @@ EmailService.notify(
   }
 );
 
+// 6. Append booking row to the Bookings sheet (Phase 1 — incomplete row).
+// Request Type, Notes are blank here; onFormSubmit will fill them in.
+var nameParts = Utils.splitFullName(fullName);
+SheetService.appendRow(CONFIG.SPREADSHEET_ID, CONFIG.BOOKINGS_SHEET_NAME, [
+  new Date(),          // Timestamp
+  nameParts.firstName, // First Name
+  nameParts.lastName,  // Last Name
+  phoneNumber,         // Phone
+  email,               // Email
+  unitNumber,          // Unit Number
+  '',                  // Request Type  — filled by onFormSubmit
+  bookedDate,          // Booked Date
+  bookedTime,          // Booked Time
+  '',                  // Notes         — filled by onFormSubmit
+  'Intake Sent',       // Status
+  calendarEventId,     // Calendar Event ID
+  '',                  // Stripe Payment ID      — future
+  '',                  // Docuseal Document ID   — future
+  'TRUE',              // Confirmation Sent
+]);
+Logger.log('handlePipedream: booking row appended for ' + email);
+
 return respond(200, { received: true, email: email });
 
 }

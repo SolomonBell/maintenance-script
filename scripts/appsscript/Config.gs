@@ -23,6 +23,9 @@ var CONFIG = {
   // Pipedream
   PIPEDREAM_SECRET: PropertiesService.getScriptProperties().getProperty('PIPEDREAM_SECRET'),
 
+  // Google Sheets
+  BOOKINGS_SHEET_NAME: 'Bookings',
+
   // Intake Form (REAL VALUES)
   INTAKE_FORM_ID: 'FORM_PUBLIC_ID_REMOVED',
   INTAKE_FORM_FIELDS: {

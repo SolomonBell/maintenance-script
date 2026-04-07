@@ -47,10 +47,59 @@ var Utils = (function () {
     return Utilities.getUuid().replace(/-/g, '').slice(0, length);
   }
 
+  /**
+   * Splits a full name string into first and last name.
+   * Rule: firstName = first token, lastName = all remaining tokens.
+   * Single-token names produce an empty lastName.
+   * @param {string} fullName
+   * @returns {{ firstName: string, lastName: string }}
+   */
+  function splitFullName(fullName) {
+    var trimmed = (fullName || '').trim();
+    var spaceIndex = trimmed.indexOf(' ');
+    if (spaceIndex === -1) {
+      return { firstName: trimmed, lastName: '' };
+    }
+    return {
+      firstName: trimmed.slice(0, spaceIndex),
+      lastName:  trimmed.slice(spaceIndex + 1).trim(),
+    };
+  }
+
   return {
     formatDate: formatDate,
     isEmpty: isEmpty,
     safeParseJson: safeParseJson,
     generateId: generateId,
+    splitFullName: splitFullName,
   };
 })();
+
+function debugSpreadsheetAccess() {
+  var id = CONFIG.SPREADSHEET_ID;
+  Logger.log('SPREADSHEET_ID value: [' + id + ']');
+  Logger.log('SPREADSHEET_ID length: ' + (id ? id.length : 'null/undefined'));
+
+  if (!id) {
+    Logger.log('RESULT: SPREADSHEET_ID is null or empty');
+    return;
+  }
+
+  try {
+    var ss = SpreadsheetApp.openById(id);
+    Logger.log('Spreadsheet opened OK: ' + ss.getName());
+  } catch (err) {
+    Logger.log('RESULT: openById failed — ' + err.message);
+    return;
+  }
+
+  var sheetName = CONFIG.BOOKINGS_SHEET_NAME;
+  Logger.log('Looking for sheet tab: [' + sheetName + ']');
+  var sheet = ss.getSheetByName(sheetName);
+
+  if (!sheet) {
+    Logger.log('RESULT: Sheet tab not found');
+  } else {
+    Logger.log('RESULT: Sheet tab found OK');
+  }
+}

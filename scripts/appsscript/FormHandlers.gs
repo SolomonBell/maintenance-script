@@ -9,12 +9,75 @@ var FormHandlers = (function () {
    * Main form submission handler. Wire this to an installable onFormSubmit trigger.
    * @param {Object} e - The form submit event object.
    */
+  /**
+   * onFormSubmit trigger handler — Phase 2 of the booking flow.
+   *
+   * Finds the booking row in the Bookings sheet by email address and updates:
+   *   - Request Type  (column 7)
+   *   - Notes         (column 10)
+   *   - Status        (column 11)
+   *
+   * Column positions match the confirmed sheet schema (1-indexed).
+   * Wire this to an installable onFormSubmit trigger in the Apps Script editor.
+   *
+   * @param {Object} e - The form submit event object.
+   */
   function onSubmit(e) {
     var responses = parseResponses(e.response);
     Logger.log('Form submitted: ' + JSON.stringify(responses));
 
-    // TODO: route to downstream services based on form content
-    // Example: SheetService.appendRow(CONFIG.SPREADSHEET_ID, 'Sheet1', responses);
+    var email       = (responses['Email Address'] || '').trim();
+    var requestType = (responses['Request Type']  || '').trim();
+    var notes       = (responses['Notes']         || '').trim();
+
+    if (!email) {
+      Logger.log('onSubmit: no email in form response — cannot match booking row');
+      return;
+    }
+
+    // Locate the row in the Bookings sheet where the Email column matches.
+    var sheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID)
+      .getSheetByName(CONFIG.BOOKINGS_SHEET_NAME);
+
+    if (!sheet) {
+      Logger.log('onSubmit: sheet "' + CONFIG.BOOKINGS_SHEET_NAME + '" not found');
+      return;
+    }
+
+    var data    = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var emailCol = headers.indexOf('Email');  // 0-indexed column position
+
+    if (emailCol === -1) {
+      Logger.log('onSubmit: "Email" column not found in sheet headers');
+      return;
+    }
+
+    // Find the last matching row (handles the unlikely duplicate-email case
+    // by updating the most recently appended booking for this customer).
+    var targetRowIndex = -1;
+    for (var i = data.length - 1; i >= 1; i--) {
+      if ((data[i][emailCol] || '').trim().toLowerCase() === email.toLowerCase()) {
+        targetRowIndex = i;
+        break;
+      }
+    }
+
+    if (targetRowIndex === -1) {
+      Logger.log('onSubmit: no booking row found for email ' + email);
+      return;
+    }
+
+    // Sheet rows are 1-indexed; data array is 0-indexed. Add 1 to convert.
+    var sheetRow = targetRowIndex + 1;
+
+    // Column positions (1-indexed) matching the confirmed schema:
+    //   7 = Request Type, 10 = Notes, 11 = Status
+    sheet.getRange(sheetRow, 7).setValue(requestType);
+    sheet.getRange(sheetRow, 10).setValue(notes);
+    sheet.getRange(sheetRow, 11).setValue('Form Submitted');
+
+    Logger.log('onSubmit: updated row ' + sheetRow + ' for email ' + email);
   }
 
   /**
