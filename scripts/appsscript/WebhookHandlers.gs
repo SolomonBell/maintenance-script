@@ -59,9 +59,26 @@ var WebhookHandlers = (function () {
    * @returns {TextOutput}
    */
   function handlePipedream(payload) {
+    // --- DEBUG START (remove once auth is confirmed working) ---
+    var incomingSecret = (payload.secret  || '').trim();
+    var expectedSecret = (CONFIG.PIPEDREAM_SECRET || '').trim();
+    Logger.log('DEBUG auth: incoming=[' + incomingSecret + '] len=' + incomingSecret.length);
+    Logger.log('DEBUG auth: expected=[' + expectedSecret + '] len=' + expectedSecret.length);
+    // --- DEBUG END ---
+
     // 1. Authenticate — reject immediately if secret is missing or wrong.
-    if (!payload.secret || payload.secret !== CONFIG.PIPEDREAM_SECRET) {
-      return respond(401, { error: 'Unauthorized' });
+    // Trim both sides to guard against whitespace inserted during copy-paste
+    // or Script Properties entry. Remove the trim() calls once auth is stable.
+    if (!incomingSecret || incomingSecret !== expectedSecret) {
+      return respond(401, {
+        error: 'Unauthorized',
+        // Diagnostic fields — safe to expose (lengths only, not secret values).
+        // Remove this object and replace with just { error: 'Unauthorized' } after debugging.
+        incomingLength:    incomingSecret.length,
+        expectedLength:    expectedSecret.length,
+        hasIncomingSecret: incomingSecret.length > 0,
+        hasExpectedSecret: expectedSecret.length > 0,
+      });
     }
 
     // 2. Validate required booking fields.
