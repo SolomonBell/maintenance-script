@@ -23,6 +23,9 @@ var CONFIG = {
   // Notifications
   NOTIFICATION_EMAIL: PropertiesService.getScriptProperties().getProperty('NOTIFICATION_EMAIL'),
 
+  // Pipedream
+  PIPEDREAM_SECRET: PropertiesService.getScriptProperties().getProperty('PIPEDREAM_SECRET'),
+
   // Intake Form
   // To find entry IDs: open the form > ⋮ menu > "Get pre-filled link" >
   // fill dummy values > copy the URL > read the entry.XXXXXXXXX params.
