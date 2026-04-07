@@ -103,7 +103,17 @@ EmailService.send(
     + 'If your issue requires immediate assistance (such as a lockout), please call your local office directly instead of using this form.\n\n'
     + 'If you have any questions, feel free to reply to this email.\n\n'
     + 'Thank you,\n'
-    + 'Reliable Storage'
+    + 'Reliable Storage',
+  {
+    htmlBody: '<p>Hi ' + fullName + ',</p>'
+      + '<p>Thanks for scheduling your maintenance appointment with Reliable Storage.</p>'
+      + '<p>To help us prepare, please complete this short intake form before your appointment:</p>'
+      + '<p><a href="' + formUrl + '">Complete Your Intake Form</a></p>'
+      + '<p>This form should take less than a minute and allows our team to understand your request ahead of time.</p>'
+      + '<p>If your issue requires immediate assistance (such as a lockout), please call your local office directly instead of using this form.</p>'
+      + '<p>If you have any questions, feel free to reply to this email.</p>'
+      + '<p>Thank you,<br>Reliable Storage</p>',
+  }
 );
 
 // 5. Send internal notification.

@@ -28,6 +28,10 @@ var EmailService = (function () {
    * @param {string} body
    */
   function notify(subject, body) {
+    if (!CONFIG.NOTIFICATION_EMAIL) {
+      Logger.log('EmailService.notify: NOTIFICATION_EMAIL is not set — skipping internal notification.');
+      return;
+    }
     send(CONFIG.NOTIFICATION_EMAIL, subject, body);
   }
 
