@@ -40,14 +40,15 @@ var FormHandlers = (function () {
    * Each field's entry ID is found via the form's "Get pre-filled link" option.
    * Values must be URL-encoded so special characters (spaces, +, &, etc.) are safe.
    *
-   * @param {string} fullName    - Respondent's full name.
-   * @param {string} phoneNumber - Respondent's phone number.
-   * @param {string} unitNumber  - Unit/apartment number.
+   * @param {string} fullName         - Respondent's full name.
+   * @param {string} phoneNumber      - Respondent's phone number.
+   * @param {string} unitNumber       - Unit/apartment number.
+   * @param {string} [issueDescription] - Optional issue description.
    * @returns {string} The pre-filled form URL.
    * @throws {Error} If any required field is missing.
    */
-  function buildPrefilledUrl(fullName, phoneNumber, unitNumber) {
-    // Validate — all three fields are required
+  function buildPrefilledUrl(fullName, phoneNumber, unitNumber, issueDescription) {
+    // Validate — first three fields are required
     if (Utils.isEmpty(fullName))    throw new Error('buildPrefilledUrl: fullName is required');
     if (Utils.isEmpty(phoneNumber)) throw new Error('buildPrefilledUrl: phoneNumber is required');
     if (Utils.isEmpty(unitNumber))  throw new Error('buildPrefilledUrl: unitNumber is required');
@@ -65,6 +66,10 @@ var FormHandlers = (function () {
       fields.PHONE_NUMBER + '=' + encodeURIComponent(phoneNumber),
       fields.UNIT_NUMBER  + '=' + encodeURIComponent(unitNumber),
     ];
+
+    if (!Utils.isEmpty(issueDescription)) {
+      params.push(fields.ISSUE_DESCRIPTION + '=' + encodeURIComponent(issueDescription));
+    }
 
     return base + '&' + params.join('&');
   }

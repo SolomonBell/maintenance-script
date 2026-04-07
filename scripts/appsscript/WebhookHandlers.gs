@@ -48,37 +48,24 @@ var WebhookHandlers = (function () {
    * Handles booking payloads sent by Pipedream.
    *
    * Expected payload fields:
-   *   secret      {string} - Must match CONFIG.PIPEDREAM_SECRET.
-   *   event       {string} - Event type, e.g. "booking.created" (logged only).
-   *   fullName    {string} - Customer's full name.
-   *   phoneNumber {string} - Customer's phone number.
-   *   unitNumber  {string} - Unit/apartment number.
-   *   email       {string} - Customer's email address.
+   *   secret           {string} - Must match CONFIG.PIPEDREAM_SECRET.
+   *   event            {string} - Event type, e.g. "booking.created" (logged only).
+   *   fullName         {string} - Customer's full name.
+   *   phoneNumber      {string} - Customer's phone number.
+   *   unitNumber       {string} - Unit/apartment number.
+   *   email            {string} - Customer's email address.
+   *   issueDescription {string} - Optional. Pre-fills the Issue Description form field.
    *
    * @param {Object} payload - Parsed JSON body from doPost.
    * @returns {TextOutput}
    */
   function handlePipedream(payload) {
-    // --- DEBUG START (remove once auth is confirmed working) ---
-    var incomingSecret = (payload.secret  || '').trim();
-    var expectedSecret = (CONFIG.PIPEDREAM_SECRET || '').trim();
-    Logger.log('DEBUG auth: incoming=[' + incomingSecret + '] len=' + incomingSecret.length);
-    Logger.log('DEBUG auth: expected=[' + expectedSecret + '] len=' + expectedSecret.length);
-    // --- DEBUG END ---
-
     // 1. Authenticate — reject immediately if secret is missing or wrong.
-    // Trim both sides to guard against whitespace inserted during copy-paste
-    // or Script Properties entry. Remove the trim() calls once auth is stable.
+    // Trim both sides to guard against whitespace in Script Properties or env vars.
+    var incomingSecret = (payload.secret           || '').trim();
+    var expectedSecret = (CONFIG.PIPEDREAM_SECRET  || '').trim();
     if (!incomingSecret || incomingSecret !== expectedSecret) {
-      return respond(401, {
-        error: 'Unauthorized',
-        // Diagnostic fields — safe to expose (lengths only, not secret values).
-        // Remove this object and replace with just { error: 'Unauthorized' } after debugging.
-        incomingLength:    incomingSecret.length,
-        expectedLength:    expectedSecret.length,
-        hasIncomingSecret: incomingSecret.length > 0,
-        hasExpectedSecret: expectedSecret.length > 0,
-      });
+      return respond(401, { error: 'Unauthorized' });
     }
 
     // 2. Validate required booking fields.
@@ -89,15 +76,16 @@ var WebhookHandlers = (function () {
       }
     }
 
-    var fullName    = payload.fullName.trim();
-    var phoneNumber = payload.phoneNumber.trim();
-    var unitNumber  = payload.unitNumber.trim();
-    var email       = payload.email.trim();
+    var fullName         = payload.fullName.trim();
+    var phoneNumber      = payload.phoneNumber.trim();
+    var unitNumber       = payload.unitNumber.trim();
+    var email            = payload.email.trim();
+    var issueDescription = (payload.issueDescription || '').trim();
 
     Logger.log('handlePipedream: event=' + (payload.event || 'unspecified') + ' email=' + email);
 
     // 3. Build the pre-filled intake form URL.
-    var formUrl = FormHandlers.buildPrefilledUrl(fullName, phoneNumber, unitNumber);
+    var formUrl = FormHandlers.buildPrefilledUrl(fullName, phoneNumber, unitNumber, issueDescription);
 
     // 4. Send the email to the customer.
     EmailService.send(
@@ -107,6 +95,18 @@ var WebhookHandlers = (function () {
         + 'Please complete your intake form before your appointment:\n\n'
         + formUrl + '\n\n'
         + 'Reply to this email if you have any questions.'
+    );
+
+    // 5. Send internal notification.
+    EmailService.notify(
+      'New booking: ' + fullName + ' — Unit ' + unitNumber,
+      'New booking received.\n\n'
+        + 'Name:    ' + fullName + '\n'
+        + 'Email:   ' + email + '\n'
+        + 'Phone:   ' + phoneNumber + '\n'
+        + 'Unit:    ' + unitNumber + '\n'
+        + (issueDescription ? 'Issue:   ' + issueDescription + '\n' : '')
+        + '\nIntake form link sent to customer.'
     );
 
     return respond(200, { received: true, email: email });
