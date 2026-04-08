@@ -104,7 +104,23 @@ var FormHandlers = (function () {
           + '.\n\n'
           + 'If you need to make changes or have questions, reply to this email.\n\n'
           + 'Thank you,\n'
-          + 'Reliable Storage'
+          + 'Reliable Storage',
+        {
+          htmlBody: '<p>Hi ' + fullName + ',</p>'
+            + '<p>Your maintenance request has been confirmed'
+            + (bookedDate || bookedTime
+                ? ' for <strong>'
+                  + (bookedDate ? bookedDate : '')
+                  + (bookedTime ? ' at ' + bookedTime : '')
+                  + '</strong>'
+                : '')
+            + '.</p>'
+            + '<p>Our team will be ready at your unit'
+            + (unitNumber ? ' (<strong>' + unitNumber + '</strong>)' : '')
+            + '.</p>'
+            + '<p>If you need to make changes or have questions, reply to this email.</p>'
+            + '<p>Thank you,<br>Reliable Storage</p>',
+        }
       );
       Logger.log('onSubmit: confirmation sent to ' + email);
     }
