@@ -83,13 +83,14 @@ var FormHandlers = (function () {
     // Lock-cut bookings require payment + signature first (Phase 2 paths 3–4).
     var isLockCut = requestType.toLowerCase().indexOf('lock') !== -1;
     if (!isLockCut) {
-      var row        = data[targetRowIndex];
-      var firstName  = row[headers.indexOf('First Name')]  || '';
-      var lastName   = row[headers.indexOf('Last Name')]   || '';
-      var bookedDate = row[headers.indexOf('Booked Date')] || '';
-      var bookedTime = row[headers.indexOf('Booked Time')] || '';
-      var unitNumber = row[headers.indexOf('Unit Number')] || '';
-      var fullName   = (firstName + ' ' + lastName).trim();
+      var row         = data[targetRowIndex];
+      var firstName   = row[headers.indexOf('First Name')]  || '';
+      var lastName    = row[headers.indexOf('Last Name')]   || '';
+      var phoneNumber = row[headers.indexOf('Phone')]       || '';
+      var bookedDate  = row[headers.indexOf('Booked Date')] || '';
+      var bookedTime  = row[headers.indexOf('Booked Time')] || '';
+      var unitNumber  = row[headers.indexOf('Unit Number')] || '';
+      var fullName    = (firstName + ' ' + lastName).trim();
 
       EmailService.send(
         email,
@@ -123,6 +124,21 @@ var FormHandlers = (function () {
         }
       );
       Logger.log('onSubmit: confirmation sent to ' + email);
+
+      // Notify the site manager that a non-lock-cut request has been confirmed.
+      EmailService.notify(
+        'Confirmed maintenance request: ' + fullName + ' — Unit ' + unitNumber,
+        'A maintenance request has been confirmed.\n\n'
+          + 'Name: '         + fullName    + '\n'
+          + 'Email: '        + email       + '\n'
+          + 'Phone: '        + phoneNumber + '\n'
+          + 'Unit: '         + unitNumber  + '\n'
+          + 'Request Type: ' + requestType + '\n\n'
+          + 'Date: '         + bookedDate  + '\n'
+          + 'Time: '         + bookedTime  + '\n'
+          + (notes ? '\nNotes:\n' + notes + '\n' : '')
+      );
+      Logger.log('onSubmit: manager notification sent for ' + email);
     }
   }
 
