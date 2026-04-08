@@ -139,6 +139,51 @@ var FormHandlers = (function () {
           + (notes ? '\nNotes:\n' + notes + '\n' : '')
       );
       Logger.log('onSubmit: manager notification sent for ' + email);
+
+    } else {
+      // Lock-cut path — payment + signature required before confirmation.
+      // Stripe and Docuseal integration comes in Paths 3–4.
+      var lcRow        = data[targetRowIndex];
+      var lcFirstName  = lcRow[headers.indexOf('First Name')]  || '';
+      var lcLastName   = lcRow[headers.indexOf('Last Name')]   || '';
+      var lcUnitNumber = lcRow[headers.indexOf('Unit Number')] || '';
+      var lcFullName   = (lcFirstName + ' ' + lcLastName).trim();
+
+      // Overwrite the status set above — lock-cut rows need a distinct state.
+      sheet.getRange(sheetRow, 11).setValue('Pending Payment + Signature');
+
+      EmailService.send(
+        email,
+        'Action required: complete payment and signature for your lock cut',
+        'Hi ' + lcFullName + ',\n\n'
+          + 'Thank you for submitting your maintenance request'
+          + (lcUnitNumber ? ' for unit ' + lcUnitNumber : '')
+          + '.\n\n'
+          + 'Because this is a lock cut, we require two steps before we can confirm your appointment:\n\n'
+          + '  1. Pay the $50 lock cut fee\n'
+          + '  2. Sign the release authorization form\n\n'
+          + 'Our team will send you separate links for payment and the release form shortly. '
+          + 'Your appointment will be confirmed once both steps are complete.\n\n'
+          + 'If you have questions, reply to this email.\n\n'
+          + 'Thank you,\n'
+          + 'Reliable Storage',
+        {
+          htmlBody: '<p>Hi ' + lcFullName + ',</p>'
+            + '<p>Thank you for submitting your maintenance request'
+            + (lcUnitNumber ? ' for unit <strong>' + lcUnitNumber + '</strong>' : '')
+            + '.</p>'
+            + '<p>Because this is a lock cut, we require two steps before we can confirm your appointment:</p>'
+            + '<ol>'
+            +   '<li>Pay the <strong>$50 lock cut fee</strong></li>'
+            +   '<li>Sign the <strong>release authorization form</strong></li>'
+            + '</ol>'
+            + '<p>Our team will send you separate links for payment and the release form shortly. '
+            + 'Your appointment will be confirmed once both steps are complete.</p>'
+            + '<p>If you have questions, reply to this email.</p>'
+            + '<p>Thank you,<br>Reliable Storage</p>',
+        }
+      );
+      Logger.log('onSubmit: lock-cut pending email sent to ' + email);
     }
   }
 
