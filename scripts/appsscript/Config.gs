@@ -24,10 +24,13 @@ var CONFIG = {
   PIPEDREAM_SECRET: PropertiesService.getScriptProperties().getProperty('PIPEDREAM_SECRET'),
 
   // Google Sheets
-  BOOKINGS_SHEET_NAME: 'Bookings',
+  BOOKINGS_SHEET_NAME: PropertiesService.getScriptProperties().getProperty('BOOKINGS_SHEET_NAME'),
 
   // Intake Form (REAL VALUES)
-  INTAKE_FORM_ID: 'FORM_PUBLIC_ID_REMOVED',
+  // Public /d/e/... ID — used in prefilled viewform URLs
+  INTAKE_FORM_PUBLIC_ID: 'FORM_PUBLIC_ID_REMOVED',
+  // Edit-mode ID — used for FormApp.openById() and trigger installation
+  INTAKE_FORM_EDIT_ID: 'FORM_EDIT_ID_REMOVED',
   INTAKE_FORM_FIELDS: {
     FULL_NAME:    'entry.XXXXXXXXX',
     PHONE_NUMBER: 'entry.XXXXXXXXX',

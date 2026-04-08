@@ -118,7 +118,7 @@ var FormHandlers = (function () {
     if (Utils.isEmpty(email))       throw new Error('buildPrefilledUrl: email is required');
 
     var base = 'https://docs.google.com/forms/d/e/'
-      + CONFIG.INTAKE_FORM_ID
+      + CONFIG.INTAKE_FORM_PUBLIC_ID
       + '/viewform?usp=pp_url';
 
     var fields = CONFIG.INTAKE_FORM_FIELDS;

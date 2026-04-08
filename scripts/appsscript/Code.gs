@@ -31,7 +31,7 @@ function formSubmitTrigger(e) {
  * Do NOT run it again — it will create duplicate triggers.
  */
 function installFormSubmitTrigger() {
-  var formId = 'FORM_EDIT_ID_REMOVED';
+  var formId = CONFIG.INTAKE_FORM_EDIT_ID;
   var form = FormApp.openById(formId);
 
   var existing = ScriptApp.getProjectTriggers().filter(function (t) {
