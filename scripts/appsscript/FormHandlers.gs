@@ -78,6 +78,36 @@ var FormHandlers = (function () {
     sheet.getRange(sheetRow, 11).setValue('Form Submitted');
 
     Logger.log('onSubmit: updated row ' + sheetRow + ' for email ' + email);
+
+    // Send a confirmation email for non-lock-cut requests only.
+    // Lock-cut bookings require payment + signature first (Phase 2 paths 3–4).
+    var isLockCut = requestType.toLowerCase().indexOf('lock') !== -1;
+    if (!isLockCut) {
+      var row        = data[targetRowIndex];
+      var firstName  = row[headers.indexOf('First Name')]  || '';
+      var lastName   = row[headers.indexOf('Last Name')]   || '';
+      var bookedDate = row[headers.indexOf('Booked Date')] || '';
+      var bookedTime = row[headers.indexOf('Booked Time')] || '';
+      var unitNumber = row[headers.indexOf('Unit Number')] || '';
+      var fullName   = (firstName + ' ' + lastName).trim();
+
+      EmailService.send(
+        email,
+        'Your maintenance request is confirmed',
+        'Hi ' + fullName + ',\n\n'
+          + 'Your maintenance request has been confirmed'
+          + (bookedDate ? ' for ' + bookedDate : '')
+          + (bookedTime ? ' at ' + bookedTime : '')
+          + '.\n\n'
+          + 'Our team will be ready at your unit'
+          + (unitNumber ? ' (' + unitNumber + ')' : '')
+          + '.\n\n'
+          + 'If you need to make changes or have questions, reply to this email.\n\n'
+          + 'Thank you,\n'
+          + 'Reliable Storage'
+      );
+      Logger.log('onSubmit: confirmation sent to ' + email);
+    }
   }
 
   /**
