@@ -141,13 +141,26 @@ var FormHandlers = (function () {
       Logger.log('onSubmit: manager notification sent for ' + email);
 
     } else {
-      // Lock-cut path — payment + signature required before confirmation.
-      // Stripe and Docuseal integration comes in Paths 3–4.
-      var lcRow        = data[targetRowIndex];
-      var lcFirstName  = lcRow[headers.indexOf('First Name')]  || '';
-      var lcLastName   = lcRow[headers.indexOf('Last Name')]   || '';
-      var lcUnitNumber = lcRow[headers.indexOf('Unit Number')] || '';
-      var lcFullName   = (lcFirstName + ' ' + lcLastName).trim();
+      // Lock-cut path — payment required now; signature link follows separately.
+      var lcRow             = data[targetRowIndex];
+      var lcFirstName       = lcRow[headers.indexOf('First Name')]        || '';
+      var lcLastName        = lcRow[headers.indexOf('Last Name')]         || '';
+      var lcUnitNumber      = lcRow[headers.indexOf('Unit Number')]       || '';
+      var lcCalendarEventId = lcRow[headers.indexOf('Calendar Event ID')] || '';
+      var lcFullName        = (lcFirstName + ' ' + lcLastName).trim();
+
+      // Create a Stripe Checkout Session for the $50 lock cut fee.
+      var session = StripeService.createCheckoutSession(
+        email,
+        lcFullName,
+        {
+          bookingEmail:    email,
+          unitNumber:      lcUnitNumber,
+          requestType:     requestType,
+          calendarEventId: lcCalendarEventId,
+        }
+      );
+      var paymentUrl = session.url;
 
       // Overwrite the status set above — lock-cut rows need a distinct state.
       sheet.getRange(sheetRow, 11).setValue('Pending Payment + Signature');
@@ -159,10 +172,10 @@ var FormHandlers = (function () {
           + 'Thank you for submitting your maintenance request'
           + (lcUnitNumber ? ' for unit ' + lcUnitNumber : '')
           + '.\n\n'
-          + 'Because this is a lock cut, we require two steps before we can confirm your appointment:\n\n'
-          + '  1. Pay the $50 lock cut fee\n'
-          + '  2. Sign the release authorization form\n\n'
-          + 'Our team will send you separate links for payment and the release form shortly. '
+          + 'Before we can confirm your appointment, we require two steps:\n\n'
+          + '  1. Pay the $50 lock cut fee:\n'
+          + '     ' + paymentUrl + '\n\n'
+          + '  2. Sign the release authorization form — we will send this link separately once payment is complete.\n\n'
           + 'Your appointment will be confirmed once both steps are complete.\n\n'
           + 'If you have questions, reply to this email.\n\n'
           + 'Thank you,\n'
@@ -172,18 +185,19 @@ var FormHandlers = (function () {
             + '<p>Thank you for submitting your maintenance request'
             + (lcUnitNumber ? ' for unit <strong>' + lcUnitNumber + '</strong>' : '')
             + '.</p>'
-            + '<p>Because this is a lock cut, we require two steps before we can confirm your appointment:</p>'
+            + '<p>Before we can confirm your appointment, we require two steps:</p>'
             + '<ol>'
-            +   '<li>Pay the <strong>$50 lock cut fee</strong></li>'
-            +   '<li>Sign the <strong>release authorization form</strong></li>'
+            +   '<li><strong>Pay the $50 lock cut fee</strong><br>'
+            +     '<a href="' + paymentUrl + '">Complete payment now</a></li>'
+            +   '<li><strong>Sign the release authorization form</strong> — '
+            +     'we will send this link separately once payment is complete.</li>'
             + '</ol>'
-            + '<p>Our team will send you separate links for payment and the release form shortly. '
-            + 'Your appointment will be confirmed once both steps are complete.</p>'
+            + '<p>Your appointment will be confirmed once both steps are complete.</p>'
             + '<p>If you have questions, reply to this email.</p>'
             + '<p>Thank you,<br>Reliable Storage</p>',
         }
       );
-      Logger.log('onSubmit: lock-cut pending email sent to ' + email);
+      Logger.log('onSubmit: lock-cut payment email sent to ' + email + ' — session ' + session.id);
     }
   }
 
