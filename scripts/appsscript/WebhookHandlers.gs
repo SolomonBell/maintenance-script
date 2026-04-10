@@ -353,7 +353,21 @@ function checkAndFinalize(sheet, sheetRow, headers, email) {
       + 'Unit: '         + unitNumber  + '\n'
       + 'Request Type: ' + requestType + '\n\n'
       + 'Date: '         + bookedDate  + '\n'
-      + 'Time: '         + bookedTime  + '\n'
+      + 'Time: '         + bookedTime  + '\n',
+    {
+      htmlBody: '<p>Lock cut appointment confirmed.</p>'
+        + '<p>'
+        +   'Name: '         + fullName    + '<br>'
+        +   'Email: '        + email       + '<br>'
+        +   'Phone: '        + phoneNumber + '<br>'
+        +   'Unit: '         + unitNumber  + '<br>'
+        +   'Request Type: ' + requestType
+        + '</p>'
+        + '<p>'
+        +   'Date: ' + bookedDate + '<br>'
+        +   'Time: ' + bookedTime
+        + '</p>',
+    }
   );
   Logger.log('checkAndFinalize: manager notification sent for ' + email);
 }
