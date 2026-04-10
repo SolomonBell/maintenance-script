@@ -15,7 +15,7 @@ var WebhookHandlers = (function () {
   */
   function route(e) {
   try {
-  var source = e.parameter.source || detectSource(e);
+  var source = (e.parameter && e.parameter.source) || detectSource(e);
   var payload = JSON.parse(e.postData.contents);
 
   switch (source) {
@@ -299,8 +299,15 @@ function checkAndFinalize(sheet, sheetRow, headers, email) {
   var lastName    = row[headers.indexOf('Last Name')]   || '';
   var phoneNumber = row[headers.indexOf('Phone')]       || '';
   var unitNumber  = row[headers.indexOf('Unit Number')] || '';
-  var bookedDate  = row[headers.indexOf('Booked Date')] || '';
-  var bookedTime  = row[headers.indexOf('Booked Time')] || '';
+  var bookedDateRaw = row[headers.indexOf('Booked Date')];
+  var bookedTimeRaw = row[headers.indexOf('Booked Time')];
+  var tz = Session.getScriptTimeZone();
+  var bookedDate = (bookedDateRaw instanceof Date)
+    ? Utilities.formatDate(bookedDateRaw, tz, 'MMM d, yyyy')
+    : (bookedDateRaw || '');
+  var bookedTime = (bookedTimeRaw instanceof Date)
+    ? Utilities.formatDate(bookedTimeRaw, tz, 'h:mm a')
+    : (bookedTimeRaw || '');
   var requestType = row[headers.indexOf('Request Type')] || '';
   var fullName    = (firstName + ' ' + lastName).trim();
 
