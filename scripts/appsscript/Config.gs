@@ -16,6 +16,7 @@ var CONFIG = {
   // Docuseal
   DOCUSEAL_API_KEY: PropertiesService.getScriptProperties().getProperty('DOCUSEAL_API_KEY'),
   DOCUSEAL_BASE_URL: PropertiesService.getScriptProperties().getProperty('DOCUSEAL_BASE_URL'),
+  DOCUSEAL_TEMPLATE_ID: PropertiesService.getScriptProperties().getProperty('DOCUSEAL_TEMPLATE_ID'),
 
   // Notifications
   NOTIFICATION_EMAIL: PropertiesService.getScriptProperties().getProperty('NOTIFICATION_EMAIL'),

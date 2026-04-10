@@ -162,6 +162,17 @@ var FormHandlers = (function () {
       );
       var paymentUrl = session.url;
 
+      // Create a Docuseal submission for the lock cut release authorization form.
+      var docusealResult = DocusealService.createSubmission(
+        CONFIG.DOCUSEAL_TEMPLATE_ID,
+        [{ email: email, role: 'First Party' }]
+      );
+      // Docuseal returns an array of submitter objects directly.
+      if (!Array.isArray(docusealResult) || !docusealResult[0] || !docusealResult[0].embed_src) {
+        throw new Error('DocusealService.createSubmission returned unexpected response: ' + JSON.stringify(docusealResult));
+      }
+      var signingUrl = docusealResult[0].embed_src;
+
       // Overwrite the status set above — lock-cut rows need a distinct state.
       sheet.getRange(sheetRow, 11).setValue('Pending Payment + Signature');
 
@@ -172,10 +183,11 @@ var FormHandlers = (function () {
           + 'Thank you for submitting your maintenance request'
           + (lcUnitNumber ? ' for unit ' + lcUnitNumber : '')
           + '.\n\n'
-          + 'Before we can confirm your appointment, we require two steps:\n\n'
+          + 'Before we can confirm your appointment, please complete both steps below:\n\n'
           + '  1. Pay the $50 lock cut fee:\n'
           + '     ' + paymentUrl + '\n\n'
-          + '  2. Sign the release authorization form — we will send this link separately once payment is complete.\n\n'
+          + '  2. Sign the release authorization form:\n'
+          + '     ' + signingUrl + '\n\n'
           + 'Your appointment will be confirmed once both steps are complete.\n\n'
           + 'If you have questions, reply to this email.\n\n'
           + 'Thank you,\n'
@@ -185,19 +197,19 @@ var FormHandlers = (function () {
             + '<p>Thank you for submitting your maintenance request'
             + (lcUnitNumber ? ' for unit <strong>' + lcUnitNumber + '</strong>' : '')
             + '.</p>'
-            + '<p>Before we can confirm your appointment, we require two steps:</p>'
+            + '<p>Before we can confirm your appointment, please complete both steps below:</p>'
             + '<ol>'
             +   '<li><strong>Pay the $50 lock cut fee</strong><br>'
             +     '<a href="' + paymentUrl + '">Complete payment now</a></li>'
-            +   '<li><strong>Sign the release authorization form</strong> — '
-            +     'we will send this link separately once payment is complete.</li>'
+            +   '<li><strong>Sign the release authorization form</strong><br>'
+            +     '<a href="' + signingUrl + '">Sign the release form</a></li>'
             + '</ol>'
             + '<p>Your appointment will be confirmed once both steps are complete.</p>'
             + '<p>If you have questions, reply to this email.</p>'
             + '<p>Thank you,<br>Reliable Storage</p>',
         }
       );
-      Logger.log('onSubmit: lock-cut payment email sent to ' + email + ' — session ' + session.id);
+      Logger.log('onSubmit: lock-cut email sent to ' + email + ' — session ' + session.id + ', docuseal submitter ' + docusealResult[0].email);
     }
   }
 
