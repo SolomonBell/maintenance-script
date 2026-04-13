@@ -10,7 +10,7 @@ and Google Sheets logging — all connected via Pipedream and SendGrid.
 
 ### Standard booking flow
 
-1. Customer books a maintenance appointment via Google Appointment Schedules
+1. Customer books a 30-minute maintenance appointment via Google Appointment Schedules (availability and booking window are controlled in Google Calendar settings)
 2. Pipedream detects the new Calendar event and POSTs to the Apps Script web app
 3. Apps Script generates a pre-filled intake form URL and emails it to the customer
 4. Customer submits the intake form
@@ -119,7 +119,19 @@ Run `installFormSubmitTrigger()` once from the Apps Script editor to wire the
 `formSubmitTrigger` function to the intake form's `onFormSubmit` event.
 Do not run it more than once — it will create duplicate triggers.
 
-### 4. Configure Pipedream
+### 4. Configure Google Appointment Schedule
+
+In Google Calendar, open your Appointment Schedule and configure the following:
+
+- **Duration:** Set each appointment slot to **30 minutes**
+- **Booking window:** Set the scheduling window to restrict how far in advance customers can book (e.g. bookings open 1 day from now and close 30 days out)
+- **Available hours:** Define the hours during which appointments can be booked to match your site's operating hours
+- **Calendar conflict checking:** Under the schedule's availability settings, ensure the schedule checks the relevant Google Calendar(s) for existing events so blocked times are not offered to customers
+- **Optional:** Configure per-day booking limits or buffer time between appointments directly in the Appointment Schedule settings if needed for operational reasons
+
+These settings are managed entirely within Google Calendar and have no corresponding Apps Script configuration.
+
+### 5. Configure Pipedream
 
 Set the following Pipedream environment variable under **Settings → Environment Variables**:
 
