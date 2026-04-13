@@ -241,7 +241,6 @@ function handleStripeCompleted(payload) {
 function handleDocusealCompleted(payload) {
   var email          = (payload.email                 || '').trim();
   var submissionId   = (payload.docusealSubmissionId  || '').trim();
-  Logger.log('handleDocusealCompleted: email=' + JSON.stringify(payload.email) + ' submissionId=' + JSON.stringify(payload.docusealSubmissionId));
   if (!email || !submissionId) {
     return respond(400, { error: 'Missing email or docusealSubmissionId' });
   }

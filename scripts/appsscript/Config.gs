@@ -27,17 +27,16 @@ var CONFIG = {
   // Google Sheets
   BOOKINGS_SHEET_NAME: PropertiesService.getScriptProperties().getProperty('BOOKINGS_SHEET_NAME'),
 
-  // Intake Form (REAL VALUES)
-  // Public /d/e/... ID — used in prefilled viewform URLs
-  INTAKE_FORM_PUBLIC_ID: 'FORM_PUBLIC_ID_REMOVED',
-  // Edit-mode ID — used for FormApp.openById() and trigger installation
-  INTAKE_FORM_EDIT_ID: 'FORM_EDIT_ID_REMOVED',
+  // Intake Form
+  // IDs and field entry IDs are set as Script Properties — never hardcode these.
+  INTAKE_FORM_PUBLIC_ID: PropertiesService.getScriptProperties().getProperty('INTAKE_FORM_PUBLIC_ID'),
+  INTAKE_FORM_EDIT_ID:   PropertiesService.getScriptProperties().getProperty('INTAKE_FORM_EDIT_ID'),
   INTAKE_FORM_FIELDS: {
-    FULL_NAME:    'entry.XXXXXXXXX',
-    PHONE_NUMBER: 'entry.XXXXXXXXX',
-    UNIT_NUMBER:  'entry.XXXXXXXXX',
-    EMAIL:        'entry.XXXXXXXXX',
-    REQUEST_TYPE: 'entry.XXXXXXXXX',
-    NOTES:        'entry.XXXXXXXXX',
+    FULL_NAME:    PropertiesService.getScriptProperties().getProperty('INTAKE_FORM_FIELD_FULL_NAME'),
+    PHONE_NUMBER: PropertiesService.getScriptProperties().getProperty('INTAKE_FORM_FIELD_PHONE_NUMBER'),
+    UNIT_NUMBER:  PropertiesService.getScriptProperties().getProperty('INTAKE_FORM_FIELD_UNIT_NUMBER'),
+    EMAIL:        PropertiesService.getScriptProperties().getProperty('INTAKE_FORM_FIELD_EMAIL'),
+    REQUEST_TYPE: PropertiesService.getScriptProperties().getProperty('INTAKE_FORM_FIELD_REQUEST_TYPE'),
+    NOTES:        PropertiesService.getScriptProperties().getProperty('INTAKE_FORM_FIELD_NOTES'),
   },
 };
