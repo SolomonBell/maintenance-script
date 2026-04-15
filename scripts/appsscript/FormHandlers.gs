@@ -87,8 +87,15 @@ var FormHandlers = (function () {
       var firstName   = row[headers.indexOf('First Name')]  || '';
       var lastName    = row[headers.indexOf('Last Name')]   || '';
       var phoneNumber = row[headers.indexOf('Phone')]       || '';
-      var bookedDate  = row[headers.indexOf('Booked Date')] || '';
-      var bookedTime  = row[headers.indexOf('Booked Time')] || '';
+      var bookedDateRaw = row[headers.indexOf('Booked Date')];
+      var bookedTimeRaw = row[headers.indexOf('Booked Time')];
+      var tz          = Session.getScriptTimeZone();
+      var bookedDate  = (bookedDateRaw instanceof Date)
+        ? Utilities.formatDate(bookedDateRaw, tz, 'MMM d, yyyy')
+        : (bookedDateRaw || '');
+      var bookedTime  = (bookedTimeRaw instanceof Date)
+        ? Utilities.formatDate(bookedTimeRaw, tz, 'h:mm a')
+        : (bookedTimeRaw || '');
       var unitNumber  = row[headers.indexOf('Unit Number')] || '';
       var fullName    = (firstName + ' ' + lastName).trim();
 
@@ -110,14 +117,13 @@ var FormHandlers = (function () {
           htmlBody: '<p>Hi ' + fullName + ',</p>'
             + '<p>Your maintenance request has been confirmed'
             + (bookedDate || bookedTime
-                ? ' for <strong>'
+                ? ' for '
                   + (bookedDate ? bookedDate : '')
                   + (bookedTime ? ' at ' + bookedTime : '')
-                  + '</strong>'
                 : '')
             + '.</p>'
             + '<p>Our team will be ready at your unit'
-            + (unitNumber ? ' (<strong>' + unitNumber + '</strong>)' : '')
+            + (unitNumber ? ' (' + unitNumber + ')' : '')
             + '.</p>'
             + '<p>If you need to make changes or have questions, reply to this email.</p>'
             + '<p>Thank you,<br>Reliable Storage</p>',
@@ -133,10 +139,23 @@ var FormHandlers = (function () {
           + 'Email: '        + email       + '\n'
           + 'Phone: '        + phoneNumber + '\n'
           + 'Unit: '         + unitNumber  + '\n'
-          + 'Request Type: ' + requestType + '\n\n'
+          + 'Request Type: ' + requestType + '\n'
           + 'Date: '         + bookedDate  + '\n'
           + 'Time: '         + bookedTime  + '\n'
-          + (notes ? '\nNotes:\n' + notes + '\n' : '')
+          + (notes ? 'Notes: ' + notes + '\n' : ''),
+        {
+          htmlBody: '<p>A maintenance request has been confirmed.</p>'
+            + '<p>'
+            +   'Name: '         + fullName    + '<br>'
+            +   'Email: '        + email       + '<br>'
+            +   'Phone: '        + phoneNumber + '<br>'
+            +   'Unit: '         + unitNumber  + '<br>'
+            +   'Request Type: ' + requestType + '<br>'
+            +   'Date: '         + bookedDate  + '<br>'
+            +   'Time: '         + bookedTime
+            + (notes ? '<br>Notes: ' + notes : '')
+            + '</p>',
+        }
       );
       Logger.log('onSubmit: manager notification sent for ' + email);
 
@@ -195,13 +214,13 @@ var FormHandlers = (function () {
         {
           htmlBody: '<p>Hi ' + lcFullName + ',</p>'
             + '<p>Thank you for submitting your maintenance request'
-            + (lcUnitNumber ? ' for unit <strong>' + lcUnitNumber + '</strong>' : '')
+            + (lcUnitNumber ? ' for unit ' + lcUnitNumber : '')
             + '.</p>'
             + '<p>Before we can confirm your appointment, please complete both steps below:</p>'
             + '<ol>'
-            +   '<li><strong>Pay the $50 lock cut fee</strong><br>'
+            +   '<li>Pay the $50 lock cut fee<br>'
             +     '<a href="' + paymentUrl + '">Complete payment now</a></li>'
-            +   '<li><strong>Sign the release authorization form</strong><br>'
+            +   '<li>Sign the release authorization form<br>'
             +     '<a href="' + signingUrl + '">Sign the release form</a></li>'
             + '</ol>'
             + '<p>Your appointment will be confirmed once both steps are complete.</p>'

@@ -135,7 +135,7 @@ EmailService.notify(
     + 'Unit: '  + unitNumber  + '\n'
     + '\nIntake form link has been sent to the customer.',
   {
-    htmlBody: '<p><strong>New booking received.</strong></p>'
+    htmlBody: '<p>New booking received.</p>'
       + '<p>'
       +   'Name: '  + fullName    + '<br>'
       +   'Email: ' + email       + '<br>'
@@ -329,14 +329,13 @@ function checkAndFinalize(sheet, sheetRow, headers, email) {
       htmlBody: '<p>Hi ' + fullName + ',</p>'
         + '<p>Great news — your lock cut appointment is confirmed'
         + (bookedDate || bookedTime
-            ? ' for <strong>'
+            ? ' for '
               + (bookedDate ? bookedDate : '')
               + (bookedTime ? ' at ' + bookedTime : '')
-              + '</strong>'
             : '')
         + '.</p>'
         + '<p>Our team will be ready at your unit'
-        + (unitNumber ? ' (<strong>' + unitNumber + '</strong>)' : '')
+        + (unitNumber ? ' (' + unitNumber + ')' : '')
         + '.</p>'
         + '<p>If you have any questions, reply to this email.</p>'
         + '<p>Thank you,<br>Reliable Storage</p>',
