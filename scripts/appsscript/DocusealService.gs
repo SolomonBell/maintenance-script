@@ -36,9 +36,13 @@ var DocusealService = (function () {
    * @returns {Object} Submission record.
    */
   function createSubmission(templateId, submitters) {
+    var submittersSuppressed = submitters.map(function (s) {
+      return Object.assign({}, s, { send_email: false });
+    });
     return request('POST', '/submissions', {
       template_id: templateId,
-      submitters: submitters,
+      send_email: false,
+      submitters: submittersSuppressed,
     });
   }
 

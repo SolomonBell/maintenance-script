@@ -114,19 +114,19 @@ var FormHandlers = (function () {
           + 'Thank you,\n'
           + 'Reliable Storage',
         {
-          htmlBody: '<p>Hi ' + fullName + ',</p>'
-            + '<p>Your maintenance request has been confirmed'
+          htmlBody: 'Hi ' + fullName + ',<br><br>'
+            + 'Your maintenance request has been confirmed'
             + (bookedDate || bookedTime
                 ? ' for '
                   + (bookedDate ? bookedDate : '')
                   + (bookedTime ? ' at ' + bookedTime : '')
                 : '')
-            + '.</p>'
-            + '<p>Our team will be ready at your unit'
+            + '.<br><br>'
+            + 'Our team will be ready at your unit'
             + (unitNumber ? ' (' + unitNumber + ')' : '')
-            + '.</p>'
-            + '<p>If you need to make changes or have questions, reply to this email.</p>'
-            + '<p>Thank you,<br>Reliable Storage</p>',
+            + '.<br><br>'
+            + 'If you need to make changes or have questions, reply to this email.<br><br>'
+            + 'Thank you,<br>Reliable Storage',
         }
       );
       Logger.log('onSubmit: confirmation sent to ' + email);
@@ -135,26 +135,30 @@ var FormHandlers = (function () {
       EmailService.notify(
         'Confirmed maintenance request: ' + fullName + ' — Unit ' + unitNumber,
         'A maintenance request has been confirmed.\n\n'
-          + 'Name: '         + fullName    + '\n'
-          + 'Email: '        + email       + '\n'
-          + 'Phone: '        + phoneNumber + '\n'
-          + 'Unit: '         + unitNumber  + '\n'
-          + 'Request Type: ' + requestType + '\n'
-          + 'Date: '         + bookedDate  + '\n'
-          + 'Time: '         + bookedTime  + '\n'
-          + (notes ? 'Notes: ' + notes + '\n' : ''),
+          + 'Customer\n'
+          + fullName    + '\n'
+          + email       + '\n'
+          + phoneNumber + '\n'
+          + 'Unit ' + unitNumber + '\n\n'
+          + 'Request\n'
+          + requestType + '\n'
+          + (bookedDate && bookedTime
+              ? bookedDate + ' at ' + bookedTime + '\n'
+              : (bookedDate || bookedTime || '') + '\n')
+          + (notes ? '\nNotes\n' + notes + '\n' : ''),
         {
-          htmlBody: '<p>A maintenance request has been confirmed.</p>'
-            + '<p>'
-            +   'Name: '         + fullName    + '<br>'
-            +   'Email: '        + email       + '<br>'
-            +   'Phone: '        + phoneNumber + '<br>'
-            +   'Unit: '         + unitNumber  + '<br>'
-            +   'Request Type: ' + requestType + '<br>'
-            +   'Date: '         + bookedDate  + '<br>'
-            +   'Time: '         + bookedTime
-            + (notes ? '<br>Notes: ' + notes : '')
-            + '</p>',
+          htmlBody: 'A maintenance request has been confirmed.<br><br>'
+            + 'Customer<br>'
+            + fullName    + '<br>'
+            + email       + '<br>'
+            + phoneNumber + '<br>'
+            + 'Unit ' + unitNumber + '<br><br>'
+            + 'Request<br>'
+            + requestType + '<br>'
+            + (bookedDate && bookedTime
+                ? bookedDate + ' at ' + bookedTime
+                : (bookedDate || bookedTime || ''))
+            + (notes ? '<br><br>Notes<br>' + notes : ''),
         }
       );
       Logger.log('onSubmit: manager notification sent for ' + email);
@@ -212,20 +216,18 @@ var FormHandlers = (function () {
           + 'Thank you,\n'
           + 'Reliable Storage',
         {
-          htmlBody: '<p>Hi ' + lcFullName + ',</p>'
-            + '<p>Thank you for submitting your maintenance request'
+          htmlBody: 'Hi ' + lcFullName + ',<br><br>'
+            + 'Thank you for submitting your maintenance request'
             + (lcUnitNumber ? ' for unit ' + lcUnitNumber : '')
-            + '.</p>'
-            + '<p>Before we can confirm your appointment, please complete both steps below:</p>'
-            + '<ol>'
-            +   '<li>Pay the $50 lock cut fee<br>'
-            +     '<a href="' + paymentUrl + '">Complete payment now</a></li>'
-            +   '<li>Sign the release authorization form<br>'
-            +     '<a href="' + signingUrl + '">Sign the release form</a></li>'
-            + '</ol>'
-            + '<p>Your appointment will be confirmed once both steps are complete.</p>'
-            + '<p>If you have questions, reply to this email.</p>'
-            + '<p>Thank you,<br>Reliable Storage</p>',
+            + '.<br><br>'
+            + 'Before we can confirm your appointment, please complete both steps below:<br><br>'
+            + '1. Pay the $50 lock cut fee<br>'
+            +   '<a href="' + paymentUrl + '">Complete payment now</a><br><br>'
+            + '2. Sign the release authorization form<br>'
+            +   '<a href="' + signingUrl + '">Sign the release form</a><br><br>'
+            + 'Your appointment will be confirmed once both steps are complete.<br><br>'
+            + 'If you have questions, reply to this email.<br><br>'
+            + 'Thank you,<br>Reliable Storage',
         }
       );
       Logger.log('onSubmit: lock-cut email sent to ' + email + ' — session ' + session.id + ', docuseal submitter ' + docusealResult[0].email);

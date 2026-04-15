@@ -114,14 +114,14 @@ EmailService.send(
     + 'Thank you,\n'
     + 'Reliable Storage',
   {
-    htmlBody: '<p>Hi ' + fullName + ',</p>'
-      + '<p>Thanks for scheduling your maintenance appointment with Reliable Storage.</p>'
-      + '<p>To help us prepare, please complete this short intake form before your appointment:</p>'
-      + '<p><a href="' + formUrl + '">Complete Your Intake Form</a></p>'
-      + '<p>This form should take less than a minute and allows our team to understand your request ahead of time.</p>'
-      + '<p>If your issue requires immediate assistance (such as a lockout), please call your local office directly instead of using this form.</p>'
-      + '<p>If you have any questions, feel free to reply to this email.</p>'
-      + '<p>Thank you,<br>Reliable Storage</p>',
+    htmlBody: 'Hi ' + fullName + ',<br><br>'
+      + 'Thanks for scheduling your maintenance appointment with Reliable Storage.<br><br>'
+      + 'To help us prepare, please complete this short intake form before your appointment:<br><br>'
+      + '<a href="' + formUrl + '">Complete Your Intake Form</a><br><br>'
+      + 'This form should take less than a minute and allows our team to understand your request ahead of time.<br><br>'
+      + 'If your issue requires immediate assistance (such as a lockout), please call your local office directly instead of using this form.<br><br>'
+      + 'If you have any questions, feel free to reply to this email.<br><br>'
+      + 'Thank you,<br>Reliable Storage',
   }
 );
 
@@ -135,14 +135,12 @@ EmailService.notify(
     + 'Unit: '  + unitNumber  + '\n'
     + '\nIntake form link has been sent to the customer.',
   {
-    htmlBody: '<p>New booking received.</p>'
-      + '<p>'
+    htmlBody: 'New booking received.<br><br>'
       +   'Name: '  + fullName    + '<br>'
       +   'Email: ' + email       + '<br>'
       +   'Phone: ' + phoneNumber + '<br>'
-      +   'Unit: '  + unitNumber  + '<br>'
-      + '</p>'
-      + '<p>Intake form link has been sent to the customer.</p>',
+      +   'Unit: '  + unitNumber  + '<br><br>'
+      + 'Intake form link has been sent to the customer.',
   }
 );
 
@@ -326,19 +324,19 @@ function checkAndFinalize(sheet, sheetRow, headers, email) {
       + 'Thank you,\n'
       + 'Reliable Storage',
     {
-      htmlBody: '<p>Hi ' + fullName + ',</p>'
-        + '<p>Great news — your lock cut appointment is confirmed'
+      htmlBody: 'Hi ' + fullName + ',<br><br>'
+        + 'Great news — your lock cut appointment is confirmed'
         + (bookedDate || bookedTime
             ? ' for '
               + (bookedDate ? bookedDate : '')
               + (bookedTime ? ' at ' + bookedTime : '')
             : '')
-        + '.</p>'
-        + '<p>Our team will be ready at your unit'
+        + '.<br><br>'
+        + 'Our team will be ready at your unit'
         + (unitNumber ? ' (' + unitNumber + ')' : '')
-        + '.</p>'
-        + '<p>If you have any questions, reply to this email.</p>'
-        + '<p>Thank you,<br>Reliable Storage</p>',
+        + '.<br><br>'
+        + 'If you have any questions, reply to this email.<br><br>'
+        + 'Thank you,<br>Reliable Storage',
     }
   );
   Logger.log('checkAndFinalize: confirmation email sent to ' + email);
@@ -354,18 +352,14 @@ function checkAndFinalize(sheet, sheetRow, headers, email) {
       + 'Date: '         + bookedDate  + '\n'
       + 'Time: '         + bookedTime  + '\n',
     {
-      htmlBody: '<p>Lock cut appointment confirmed.</p>'
-        + '<p>'
+      htmlBody: 'Lock cut appointment confirmed.<br><br>'
         +   'Name: '         + fullName    + '<br>'
         +   'Email: '        + email       + '<br>'
         +   'Phone: '        + phoneNumber + '<br>'
         +   'Unit: '         + unitNumber  + '<br>'
-        +   'Request Type: ' + requestType
-        + '</p>'
-        + '<p>'
+        +   'Request Type: ' + requestType + '<br><br>'
         +   'Date: ' + bookedDate + '<br>'
-        +   'Time: ' + bookedTime
-        + '</p>',
+        +   'Time: ' + bookedTime,
     }
   );
   Logger.log('checkAndFinalize: manager notification sent for ' + email);
