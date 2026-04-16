@@ -1,57 +1,6 @@
 # Maintenance Booking System
 
-A Google Apps Script automation that handles self-storage maintenance bookings
-end-to-end: form intake, confirmation emails, Stripe payment, DocuSeal e-signature,
-and Google Sheets logging — all connected via Pipedream and SendGrid.
-
----
-
-## How It Works
-
-### Standard booking flow
-
-1. Customer books a 30-minute maintenance appointment via Google Appointment Schedules (availability and booking window are controlled in Google Calendar settings)
-2. Pipedream detects the new Calendar event and POSTs to the Apps Script web app
-3. Apps Script generates a pre-filled intake form URL and emails it to the customer
-4. Customer submits the intake form
-5. Apps Script updates the Bookings sheet and sends a confirmation email
-
-### Lock cut flow
-
-1–4 same as above, but when the intake form identifies a lock cut request:
-
-5. Apps Script creates a Stripe Checkout Session and a DocuSeal signing submission
-6. Customer receives a single email with both the payment link and the release form link
-7. Pipedream forwards the Stripe `checkout.session.completed` event to Apps Script
-8. Pipedream forwards the DocuSeal `submission.completed` event to Apps Script
-9. When both are confirmed, Apps Script sets the booking to **Confirmed**, sends
-   a final confirmation to the customer, and notifies the site manager
-
----
-
-## Architecture
-
-```
-Google Appointment Schedules
-        │  (new Calendar event)
-        ▼
-    Pipedream
-        │  POST /exec?source=pipedream
-        ▼
-Google Apps Script Web App
-        ├── FormHandlers.gs      — onFormSubmit trigger
-        ├── WebhookHandlers.gs   — Pipedream routing + completion logic
-        ├── StripeService.gs     — Checkout Session creation
-        ├── DocusealService.gs   — Submission creation
-        ├── EmailService.gs      — SendGrid transactional email
-        ├── SheetService.gs      — Bookings sheet read/write
-        ├── CalendarHandlers.gs  — Calendar event parsing utilities
-        ├── Config.gs            — Script Properties wrapper
-        └── Utils.gs             — Shared helpers
-        │
-        ▼
-Google Sheets (Bookings log)
-```
+An end-to-end maintenance appointment automation for a self-storage facility. Customers book via Google Appointment Schedules; the system handles intake, confirmation, payment, e-signature, and status tracking — with all state persisted in Google Sheets and all email delivered through SendGrid.
 
 ---
 
@@ -59,106 +8,74 @@ Google Sheets (Bookings log)
 
 | Service | Role |
 |---|---|
-| Google Apps Script | Backend logic and web app endpoint |
-| Google Sheets | Booking records database |
+| Google Calendar / Appointment Schedules | Customer-facing booking interface |
+| Google Apps Script | Backend logic and HTTPS web app endpoint |
+| Google Sheets | Booking records and status log |
 | Google Forms | Customer intake form |
-| Google Calendar / Appointment Schedules | Booking intake |
-| Pipedream | Event routing (Calendar → GAS, Stripe → GAS, DocuSeal → GAS) |
+| Pipedream | Event orchestration (Calendar → GAS, Stripe → GAS, DocuSeal → GAS) |
 | SendGrid | Transactional email delivery |
 | Stripe | Payment processing (lock cut fee) |
 | DocuSeal | E-signature (lock cut release authorization) |
 
 ---
 
-## Setup
+## Architecture
 
-### 1. Deploy the Apps Script web app
+```
+Google Appointment Schedules
+        │  new Calendar event
+        ▼
+    Pipedream ◀──── Stripe   (checkout.session.completed)
+        │     ◀──── DocuSeal (submission.completed)
+        │  POST /exec?source=pipedream
+        ▼
+Google Apps Script Web App
+        ├── WebhookHandlers.gs   — Pipedream routing + Stripe/DocuSeal finalization
+        ├── FormHandlers.gs      — onFormSubmit trigger + lock-cut branching
+        ├── EmailService.gs      — SendGrid transactional email
+        ├── StripeService.gs     — Checkout Session creation
+        ├── DocusealService.gs   — Submission creation
+        ├── SheetService.gs      — Bookings sheet read/write
+        ├── CalendarHandlers.gs  — Alternative direct calendar-trigger intake path
+        ├── Config.gs            — Script Properties wrapper
+        └── Utils.gs             — Shared helpers
+        │
+        ▼
+Google Sheets (Bookings log)
+```
 
-- Open the project in the Apps Script editor
-- **Deploy → New deployment → Web app**
-- Set **Execute as:** Me
-- Set **Who has access:** Anyone
-- Copy the deployment URL — you will use it in Pipedream
+Pipedream acts as the integration layer between all external services and the Apps Script web app. All state changes and email sends are handled exclusively inside Apps Script.
 
-### 2. Set Script Properties
+---
 
-In the Apps Script editor go to **Project Settings → Script Properties** and add:
+## Standard Booking Flow
 
-| Key | Description |
-|---|---|
-| `SPREADSHEET_ID` | Google Sheets ID for the Bookings sheet |
-| `BOOKINGS_SHEET_NAME` | Sheet tab name (e.g. `Bookings`) |
-| `PIPEDREAM_SECRET` | Shared secret for authenticating Pipedream requests |
-| `NOTIFICATION_EMAIL` | Email address for internal manager notifications |
-| `SENDGRID_API_KEY` | SendGrid API key with Mail Send permission |
-| `SENDGRID_FROM_EMAIL` | Verified sender address |
-| `SENDGRID_FROM_NAME` | Display name for outbound emails |
-| `STRIPE_SECRET_KEY` | Stripe secret key (`sk_test_...` or `sk_live_...`) |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
-| `STRIPE_PRICE_ID` | Stripe Price ID for the lock cut fee |
-| `STRIPE_SUCCESS_URL` | Redirect URL after successful payment |
-| `STRIPE_CANCEL_URL` | Redirect URL if payment is cancelled |
-| `DOCUSEAL_API_KEY` | DocuSeal API key |
-| `DOCUSEAL_BASE_URL` | DocuSeal API base URL (e.g. `https://api.docuseal.com`) |
-| `DOCUSEAL_TEMPLATE_ID` | DocuSeal template ID for the lock cut release form |
-| `INTAKE_FORM_PUBLIC_ID` | Google Form public ID (from the `/d/e/<ID>/viewform` URL) |
-| `INTAKE_FORM_EDIT_ID` | Google Form edit ID (from the `/d/<ID>/edit` URL) |
-| `INTAKE_FORM_FIELD_FULL_NAME` | Form entry ID for Full Name (`entry.XXXXXXXXX`) |
-| `INTAKE_FORM_FIELD_PHONE_NUMBER` | Form entry ID for Phone Number |
-| `INTAKE_FORM_FIELD_UNIT_NUMBER` | Form entry ID for Unit Number |
-| `INTAKE_FORM_FIELD_EMAIL` | Form entry ID for Email |
-| `INTAKE_FORM_FIELD_REQUEST_TYPE` | Form entry ID for Request Type |
-| `INTAKE_FORM_FIELD_NOTES` | Form entry ID for Notes |
+1. Customer books a maintenance appointment via Google Appointment Schedules
+2. Pipedream detects the new Calendar event, extracts customer fields, and POSTs them to the Apps Script web app
+3. Apps Script emails the customer a pre-filled intake form link via SendGrid and appends a booking row to the Bookings sheet (status: `Intake Sent`)
+4. Customer submits the intake form
+5. Apps Script locates the booking row by email address, writes Request Type and Notes, and sets status to `Form Submitted`
+6. Apps Script sends the customer a confirmation email and notifies the manager at the configured notification address
 
-> Form entry IDs are found via **Google Form → More options → Get pre-filled link**.
-> Fill in each field, copy the resulting URL, and read the `entry.XXXXXXXXX` values.
+---
 
-### 3. Install the form submit trigger
+## Lock Cut Flow
 
-Run `installFormSubmitTrigger()` once from the Apps Script editor to wire the
-`formSubmitTrigger` function to the intake form's `onFormSubmit` event.
-Do not run it more than once — it will create duplicate triggers.
+Lock cuts require a $50 payment and a signed release authorization before the appointment is confirmed. Steps 1–5 are identical to the standard flow. At step 5, when the intake form identifies a lock cut request:
 
-### 4. Configure Google Appointment Schedule
+6. Apps Script simultaneously creates a Stripe Checkout Session and a DocuSeal signing submission
+7. Customer receives a single email containing the payment link and the release form signing link (status: `Pending Payment + Signature`)
+8. Customer completes payment → Stripe fires `checkout.session.completed` → Pipedream forwards the payload to Apps Script → Stripe session ID written to the booking row
+9. Customer signs the release form → DocuSeal fires `submission.completed` → Pipedream forwards the payload to Apps Script → DocuSeal submission ID written to the booking row
+10. Once both IDs are present, Apps Script sets status to `Confirmed`, sends the customer a final appointment confirmation, and notifies the manager
 
-In Google Calendar, open your Appointment Schedule and configure the following:
-
-- **Duration:** Set each appointment slot to **30 minutes**
-- **Booking window:** Set the scheduling window to restrict how far in advance customers can book (e.g. bookings open 1 day from now and close 30 days out)
-- **Available hours:** Define the hours during which appointments can be booked to match your site's operating hours
-- **Calendar conflict checking:** Under the schedule's availability settings, ensure the schedule checks the relevant Google Calendar(s) for existing events so blocked times are not offered to customers
-- **Optional:** Configure per-day booking limits or buffer time between appointments directly in the Appointment Schedule settings if needed for operational reasons
-
-These settings are managed entirely within Google Calendar and have no corresponding Apps Script configuration.
-
-### 5. Configure Pipedream
-
-Set the following Pipedream environment variable under **Settings → Environment Variables**:
-
-| Variable | Value |
-|---|---|
-| `GAS_PIPEDREAM_SECRET` | Same value as `PIPEDREAM_SECRET` in Script Properties |
-
-Wire three Pipedream workflows to POST to your Apps Script web app URL with
-`?source=pipedream` appended:
-
-- **booking.created** — triggered by a new Google Calendar event; extracts
-  customer fields and POSTs them to Apps Script
-- **stripe_checkout_completed** — triggered by Stripe `checkout.session.completed`;
-  forwards `email` and `stripeSessionId`
-- **docuseal_submission_completed** — triggered by DocuSeal `submission.completed`;
-  forwards `email` and `docusealSubmissionId`
-
-See [`scripts/pipedream/booking-workflow-reference.md`](scripts/pipedream/booking-workflow-reference.md)
-for the full Pipedream step code and payload shapes.
+Steps 8 and 9 can complete in either order; finalization triggers only when both are recorded.
 
 ---
 
 ## Bookings Sheet Schema
 
-The Bookings sheet must have these column headers in order:
-
-| # | Column | Set by |
+| # | Column | Written by |
 |---|---|---|
 | 1 | Timestamp | Pipedream webhook |
 | 2 | First Name | Pipedream webhook |
@@ -178,18 +95,9 @@ The Bookings sheet must have these column headers in order:
 
 ---
 
-## Current Status
-
-- Standard booking flow (intake form → confirmation email) is complete and live
-- Lock cut flow (Stripe payment + DocuSeal signature → confirmed booking) is complete and live
-- Webhook-based finalization (both completions trigger sheet update + confirmation email) is complete and live
-
----
-
 ## Future Improvements
 
 - Stripe webhook signature verification (`Stripe-Signature` header validation)
-- Idempotency handling for duplicate Pipedream webhook deliveries beyond the current `Confirmed` status guard
-- Reschedule / cancellation handling via the `Event Updated` Calendar trigger
-- Admin dashboard or Sheets-based reporting view
-- Switch from polling-based Pipedream Calendar trigger to push-based notifications
+- Idempotency guard for duplicate Pipedream webhook deliveries beyond the existing `Confirmed` status check
+- Reschedule and cancellation handling via the `Event Updated` Calendar trigger
+- Push-based Calendar notifications in place of Pipedream's polling trigger
