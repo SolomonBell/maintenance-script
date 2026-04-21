@@ -27,6 +27,11 @@ var CONFIG = {
   // Google Sheets
   BOOKINGS_SHEET_NAME: PropertiesService.getScriptProperties().getProperty('BOOKINGS_SHEET_NAME'),
 
+  // Location defaults — used when the incoming payload does not include location metadata.
+  // Set DEFAULT_LOCATION and DEFAULT_LOCATION_GROUP in Script Properties.
+  DEFAULT_LOCATION:       PropertiesService.getScriptProperties().getProperty('DEFAULT_LOCATION'),
+  DEFAULT_LOCATION_GROUP: PropertiesService.getScriptProperties().getProperty('DEFAULT_LOCATION_GROUP'),
+
   // Intake Form
   // IDs and field entry IDs are set as Script Properties — never hardcode these.
   INTAKE_FORM_PUBLIC_ID: PropertiesService.getScriptProperties().getProperty('INTAKE_FORM_PUBLIC_ID'),

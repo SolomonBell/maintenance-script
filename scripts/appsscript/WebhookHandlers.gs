@@ -144,25 +144,32 @@ EmailService.notify(
   }
 );
 
-// 6. Append booking row to the Bookings sheet (Phase 1 — incomplete row).
-// Request Type, Notes are blank here; onFormSubmit will fill them in.
+// 6. Append booking row to the Bookings sheet.
+// Location falls back to script-property defaults until multi-location routing is implemented.
+// Request Type and Notes are blank here; onFormSubmit will fill them in.
 var nameParts = Utils.splitFullName(fullName);
 SheetService.appendRow(CONFIG.SPREADSHEET_ID, CONFIG.BOOKINGS_SHEET_NAME, [
-  new Date(),          // Timestamp
-  nameParts.firstName, // First Name
-  nameParts.lastName,  // Last Name
-  phoneNumber,         // Phone
-  email,               // Email
-  unitNumber,          // Unit Number
-  '',                  // Request Type  — filled by onFormSubmit
-  bookedDate,          // Booked Date
-  bookedTime,          // Booked Time
-  '',                  // Notes         — filled by onFormSubmit
-  'Intake Sent',       // Status
-  calendarEventId,     // Calendar Event ID
-  '',                  // Stripe Payment ID      — future
-  '',                  // Docuseal Document ID   — future
-  'TRUE',              // Confirmation Sent
+  new Date(),                              //  1  Timestamp
+  CONFIG.DEFAULT_LOCATION       || '',     //  2  Location
+  CONFIG.DEFAULT_LOCATION_GROUP || '',     //  3  Location Group
+  nameParts.firstName,                     //  4  First Name
+  nameParts.lastName,                      //  5  Last Name
+  phoneNumber,                             //  6  Phone
+  email,                                   //  7  Email
+  unitNumber,                              //  8  Unit Number
+  '',                                      //  9  Request Type  — filled by onFormSubmit
+  bookedDate,                              // 10  Booked Date
+  bookedTime,                              // 11  Booked Time
+  '',                                      // 12  Notes         — filled by onFormSubmit
+  'Intake Sent',                           // 13  Status
+  'False',                                 // 14  Fee Required
+  'False',                                 // 15  Fee Paid
+  'False',                                 // 16  Signature Required
+  'False',                                 // 17  Signature Complete
+  calendarEventId,                         // 18  Calendar Event ID
+  '',                                      // 19  Stripe Payment ID
+  '',                                      // 20  Docuseal Document ID
+  '',                                      // 21  Final Confirmation Sent
 ]);
 Logger.log('handlePipedream: booking row appended for ' + email);
 
@@ -201,7 +208,7 @@ function findRowByEmail(email) {
 
 /**
  * Handles Stripe checkout.session.completed forwarded by Pipedream.
- * Writes the Stripe session ID to the booking row, then checks for completion.
+ * Writes the Stripe session ID, marks Fee Paid, then checks for full completion.
  * @param {Object} payload
  * @returns {TextOutput}
  */
@@ -217,14 +224,16 @@ function handleStripeCompleted(payload) {
     return respond(200, { received: true, note: 'No matching booking row' });
   }
 
-  var col = found.headers.indexOf('Stripe Payment ID') + 1;
-  if (col < 1) {
-    Logger.log('handleStripeCompleted: Stripe Payment ID column not found');
-    return respond(500, { error: 'Stripe Payment ID column not found in sheet' });
+  var stripeCol  = found.headers.indexOf('Stripe Payment ID') + 1;
+  var feePaidCol = found.headers.indexOf('Fee Paid')          + 1;
+  if (stripeCol < 1 || feePaidCol < 1) {
+    Logger.log('handleStripeCompleted: required column not found in sheet headers');
+    return respond(500, { error: 'Required column not found in sheet' });
   }
 
-  found.sheet.getRange(found.sheetRow, col).setValue(sessionId);
-  Logger.log('handleStripeCompleted: wrote Stripe Payment ID for ' + email);
+  found.sheet.getRange(found.sheetRow, stripeCol).setValue(sessionId);
+  found.sheet.getRange(found.sheetRow, feePaidCol).setValue('True');
+  Logger.log('handleStripeCompleted: wrote Stripe Payment ID and Fee Paid for ' + email);
 
   checkAndFinalize(found.sheet, found.sheetRow, found.headers, email);
   return respond(200, { received: true });
@@ -232,13 +241,13 @@ function handleStripeCompleted(payload) {
 
 /**
  * Handles Docuseal submission.completed forwarded by Pipedream.
- * Writes the Docuseal submission ID to the booking row, then checks for completion.
+ * Writes the Docuseal submission ID, marks Signature Complete, then checks for full completion.
  * @param {Object} payload
  * @returns {TextOutput}
  */
 function handleDocusealCompleted(payload) {
-  var email          = (payload.email                 || '').trim();
-  var submissionId   = (payload.docusealSubmissionId  || '').trim();
+  var email        = (payload.email                || '').trim();
+  var submissionId = (payload.docusealSubmissionId || '').trim();
   if (!email || !submissionId) {
     return respond(400, { error: 'Missing email or docusealSubmissionId' });
   }
@@ -248,23 +257,27 @@ function handleDocusealCompleted(payload) {
     return respond(200, { received: true, note: 'No matching booking row' });
   }
 
-  var col = found.headers.indexOf('Docuseal Document ID') + 1;
-  if (col < 1) {
-    Logger.log('handleDocusealCompleted: Docuseal Document ID column not found');
-    return respond(500, { error: 'Docuseal Document ID column not found in sheet' });
+  var docusealCol    = found.headers.indexOf('Docuseal Document ID') + 1;
+  var sigCompleteCol = found.headers.indexOf('Signature Complete')   + 1;
+  if (docusealCol < 1 || sigCompleteCol < 1) {
+    Logger.log('handleDocusealCompleted: required column not found in sheet headers');
+    return respond(500, { error: 'Required column not found in sheet' });
   }
 
-  found.sheet.getRange(found.sheetRow, col).setValue(submissionId);
-  Logger.log('handleDocusealCompleted: wrote Docuseal Document ID for ' + email);
+  found.sheet.getRange(found.sheetRow, docusealCol).setValue(submissionId);
+  found.sheet.getRange(found.sheetRow, sigCompleteCol).setValue('True');
+  Logger.log('handleDocusealCompleted: wrote Docuseal Document ID and Signature Complete for ' + email);
 
   checkAndFinalize(found.sheet, found.sheetRow, found.headers, email);
   return respond(200, { received: true });
 }
 
 /**
- * Checks whether both Stripe and Docuseal steps are complete for a booking row.
- * If both IDs are present and status is not already Confirmed, finalizes the booking:
- * updates status, sends customer confirmation email, and notifies the manager.
+ * Routes a booking row to the correct intermediate or final status based on
+ * Fee Paid and Signature Complete flags. Called after each Stripe/Docuseal event.
+ *   - Fee Paid only:           Status → "Pending Signature"
+ *   - Signature Complete only: Status → "Pending Payment"
+ *   - Both complete:           Status → "Confirmed", sends emails, marks Final Confirmation Sent
  * @param {Sheet}    sheet
  * @param {number}   sheetRow  - 1-indexed sheet row
  * @param {string[]} headers
@@ -274,23 +287,40 @@ function checkAndFinalize(sheet, sheetRow, headers, email) {
   // Re-read the row after writes to get current state of all columns.
   var row = sheet.getRange(sheetRow, 1, 1, headers.length).getValues()[0];
 
-  var stripeId   = row[headers.indexOf('Stripe Payment ID')]   || '';
-  var docusealId = row[headers.indexOf('Docuseal Document ID')] || '';
-  var statusCol  = headers.indexOf('Status') + 1;
-  var status     = row[headers.indexOf('Status')]               || '';
-
-  if (!stripeId || !docusealId) {
-    Logger.log('checkAndFinalize: incomplete for ' + email
-      + ' (stripe=' + !!stripeId + ', docuseal=' + !!docusealId + ')');
-    return;
-  }
+  var feePaid           = row[headers.indexOf('Fee Paid')];
+  var signatureComplete = row[headers.indexOf('Signature Complete')];
+  var feePaidDone       = String(feePaid) === 'True';
+  var signatureDone     = String(signatureComplete) === 'True';
+  var statusCol         = headers.indexOf('Status') + 1;
+  var status            = row[headers.indexOf('Status')] || '';
 
   if (status === 'Confirmed') {
     Logger.log('checkAndFinalize: already Confirmed for ' + email + ' — skipping');
     return;
   }
 
+  if (feePaidDone && !signatureDone) {
+    sheet.getRange(sheetRow, statusCol).setValue('Pending Signature');
+    Logger.log('checkAndFinalize: set Pending Signature for ' + email);
+    return;
+  }
+
+  if (!feePaidDone && signatureDone) {
+    sheet.getRange(sheetRow, statusCol).setValue('Pending Payment');
+    Logger.log('checkAndFinalize: set Pending Payment for ' + email);
+    return;
+  }
+
+  if (!feePaidDone || !signatureDone) {
+    Logger.log('checkAndFinalize: not ready to finalize for ' + email
+      + ' (feePaid=' + feePaid + ', signatureComplete=' + signatureComplete + ')');
+    return;
+  }
+
+  // Both complete — finalize.
   sheet.getRange(sheetRow, statusCol).setValue('Confirmed');
+  var finalConfCol = headers.indexOf('Final Confirmation Sent') + 1;
+  sheet.getRange(sheetRow, finalConfCol).setValue('True');
   Logger.log('checkAndFinalize: set Confirmed for ' + email);
 
   var firstName   = row[headers.indexOf('First Name')]  || '';

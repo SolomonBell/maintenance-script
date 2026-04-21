@@ -6,18 +6,10 @@
 var FormHandlers = (function () {
 
   /**
-   * Main form submission handler. Wire this to an installable onFormSubmit trigger.
-   * @param {Object} e - The form submit event object.
-   */
-  /**
    * onFormSubmit trigger handler — Phase 2 of the booking flow.
    *
-   * Finds the booking row in the Bookings sheet by email address and updates:
-   *   - Request Type  (column 7)
-   *   - Notes         (column 10)
-   *   - Status        (column 11)
-   *
-   * Column positions match the confirmed sheet schema (1-indexed).
+   * Finds the booking row in the Bookings sheet by email address and updates
+   * Request Type, Notes, status flags, and fee/signature metadata.
    * Wire this to an installable onFormSubmit trigger in the Apps Script editor.
    *
    * @param {Object} e - The form submit event object.
@@ -71,16 +63,22 @@ var FormHandlers = (function () {
     // Sheet rows are 1-indexed; data array is 0-indexed. Add 1 to convert.
     var sheetRow = targetRowIndex + 1;
 
-    // Column positions (1-indexed) matching the confirmed schema:
-    //   7 = Request Type, 10 = Notes, 11 = Status
-    sheet.getRange(sheetRow, 7).setValue(requestType);
-    sheet.getRange(sheetRow, 10).setValue(notes);
-    sheet.getRange(sheetRow, 11).setValue('Form Submitted');
+    // Derive column positions from headers — avoids fragile hardcoded indices.
+    var requestTypeCol = headers.indexOf('Request Type')            + 1;
+    var notesCol       = headers.indexOf('Notes')                   + 1;
+    var statusCol      = headers.indexOf('Status')                  + 1;
+    var feeReqCol      = headers.indexOf('Fee Required')            + 1;
+    var sigReqCol      = headers.indexOf('Signature Required')      + 1;
+    var finalConfCol   = headers.indexOf('Final Confirmation Sent') + 1;
+
+    sheet.getRange(sheetRow, requestTypeCol).setValue(requestType);
+    sheet.getRange(sheetRow, notesCol).setValue(notes);
+    sheet.getRange(sheetRow, statusCol).setValue('Form Submitted');
 
     Logger.log('onSubmit: updated row ' + sheetRow + ' for email ' + email);
 
     // Send a confirmation email for non-lock-cut requests only.
-    // Lock-cut bookings require payment + signature first (Phase 2 paths 3–4).
+    // Lock-cut bookings require payment + signature first.
     var isLockCut = requestType.toLowerCase().indexOf('lock') !== -1;
     if (!isLockCut) {
       var row         = data[targetRowIndex];
@@ -163,8 +161,13 @@ var FormHandlers = (function () {
       );
       Logger.log('onSubmit: manager notification sent for ' + email);
 
+      // Confirmation emails sent — mark the booking as fully resolved.
+      sheet.getRange(sheetRow, statusCol).setValue('Confirmed');
+      sheet.getRange(sheetRow, finalConfCol).setValue('True');
+      Logger.log('onSubmit: set Confirmed and Final Confirmation Sent for ' + email);
+
     } else {
-      // Lock-cut path — payment required now; signature link follows separately.
+      // Lock-cut path — fee and signature required before confirming.
       var lcRow             = data[targetRowIndex];
       var lcFirstName       = lcRow[headers.indexOf('First Name')]        || '';
       var lcLastName        = lcRow[headers.indexOf('Last Name')]         || '';
@@ -196,8 +199,10 @@ var FormHandlers = (function () {
       }
       var signingUrl = docusealResult[0].embed_src;
 
-      // Overwrite the status set above — lock-cut rows need a distinct state.
-      sheet.getRange(sheetRow, 11).setValue('Pending Payment + Signature');
+      // Mark fee and signature as required, overwrite status to reflect pending state.
+      sheet.getRange(sheetRow, feeReqCol).setValue('True');
+      sheet.getRange(sheetRow, sigReqCol).setValue('True');
+      sheet.getRange(sheetRow, statusCol).setValue('Pending Payment + Signature');
 
       EmailService.send(
         email,
