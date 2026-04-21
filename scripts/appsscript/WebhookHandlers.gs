@@ -289,8 +289,8 @@ function checkAndFinalize(sheet, sheetRow, headers, email) {
 
   var feePaid           = row[headers.indexOf('Fee Paid')];
   var signatureComplete = row[headers.indexOf('Signature Complete')];
-  var feePaidDone       = String(feePaid) === 'True';
-  var signatureDone     = String(signatureComplete) === 'True';
+  var feePaidDone   = String(feePaid).trim().toLowerCase() === 'true';
+  var signatureDone = String(signatureComplete).trim().toLowerCase() === 'true';
   var statusCol         = headers.indexOf('Status') + 1;
   var status            = row[headers.indexOf('Status')] || '';
 
