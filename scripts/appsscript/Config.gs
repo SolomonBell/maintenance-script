@@ -38,6 +38,7 @@ var CONFIG = {
   INTAKE_FORM_EDIT_ID:   PropertiesService.getScriptProperties().getProperty('INTAKE_FORM_EDIT_ID'),
   INTAKE_FORM_FIELDS: {
     FULL_NAME:    PropertiesService.getScriptProperties().getProperty('INTAKE_FORM_FIELD_FULL_NAME'),
+    LOCATION:     PropertiesService.getScriptProperties().getProperty('INTAKE_FORM_FIELD_LOCATION'),
     PHONE_NUMBER: PropertiesService.getScriptProperties().getProperty('INTAKE_FORM_FIELD_PHONE_NUMBER'),
     UNIT_NUMBER:  PropertiesService.getScriptProperties().getProperty('INTAKE_FORM_FIELD_UNIT_NUMBER'),
     EMAIL:        PropertiesService.getScriptProperties().getProperty('INTAKE_FORM_FIELD_EMAIL'),

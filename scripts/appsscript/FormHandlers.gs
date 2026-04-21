@@ -19,6 +19,7 @@ var FormHandlers = (function () {
     Logger.log('Form submitted: ' + JSON.stringify(responses));
 
     var email       = (responses['Email Address'] || '').trim();
+    var location    = (responses['Location']      || '').trim();
     var requestType = (responses['Request Type']  || '').trim();
     var notes       = (responses['Notes']         || '').trim();
 
@@ -64,6 +65,7 @@ var FormHandlers = (function () {
     var sheetRow = targetRowIndex + 1;
 
     // Derive column positions from headers — avoids fragile hardcoded indices.
+    var locationCol    = headers.indexOf('Location')                + 1;
     var requestTypeCol = headers.indexOf('Request Type')            + 1;
     var notesCol       = headers.indexOf('Notes')                   + 1;
     var statusCol      = headers.indexOf('Status')                  + 1;
@@ -71,6 +73,7 @@ var FormHandlers = (function () {
     var sigReqCol      = headers.indexOf('Signature Required')      + 1;
     var finalConfCol   = headers.indexOf('Final Confirmation Sent') + 1;
 
+    sheet.getRange(sheetRow, locationCol).setValue(location);
     sheet.getRange(sheetRow, requestTypeCol).setValue(requestType);
     sheet.getRange(sheetRow, notesCol).setValue(notes);
     sheet.getRange(sheetRow, statusCol).setValue('Form Submitted');
