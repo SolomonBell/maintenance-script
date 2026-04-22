@@ -27,10 +27,20 @@ var CONFIG = {
   // Google Sheets
   BOOKINGS_SHEET_NAME: PropertiesService.getScriptProperties().getProperty('BOOKINGS_SHEET_NAME'),
 
-  // Location defaults — used when the incoming payload does not include location metadata.
+  // Location defaults — used when calendarName is absent or unrecognised.
   // Set DEFAULT_LOCATION and DEFAULT_LOCATION_GROUP in Script Properties.
   DEFAULT_LOCATION:       PropertiesService.getScriptProperties().getProperty('DEFAULT_LOCATION'),
   DEFAULT_LOCATION_GROUP: PropertiesService.getScriptProperties().getProperty('DEFAULT_LOCATION_GROUP'),
+
+  // Maps the calendarName sent by Pipedream to Location and Location Group values.
+  // Keys must exactly match what Pipedream sends in payload.calendarName.
+  LOCATION_MAP: {
+    'Bainbridge Maintenance':                      { location: 'Bainbridge',               locationGroup: 'Group 1' },
+    'Poulsbo Maintenance':                         { location: 'Poulsbo',                  locationGroup: 'Group 2' },
+    'Port Orchard Maintenance Calendar':           { location: 'Port Orchard',             locationGroup: 'Group 3' },
+    'Kingston, Silverdale Maintenance Calendar':   { location: 'Kingston / Silverdale',    locationGroup: 'Group 4' },
+    'Fairgrounds, Waaga Way Maintenance Calendar': { location: 'Fairgrounds / Waaga Way',  locationGroup: 'Group 5' },
+  },
 
   // Intake Form
   // IDs and field entry IDs are set as Script Properties — never hardcode these.

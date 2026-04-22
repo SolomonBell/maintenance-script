@@ -148,13 +148,17 @@ EmailService.notify(
 );
 
 // 6. Append booking row to the Bookings sheet.
-// Location falls back to script-property defaults until multi-location routing is implemented.
+// Resolve location from the calendarName in the payload; fall back to defaults if unrecognised.
+var calendarName   = (payload.calendarName || '').trim();
+var locationEntry  = CONFIG.LOCATION_MAP[calendarName] || null;
+var location       = locationEntry ? locationEntry.location      : (CONFIG.DEFAULT_LOCATION       || '');
+var locationGroup  = locationEntry ? locationEntry.locationGroup : (CONFIG.DEFAULT_LOCATION_GROUP || '');
 // Request Type and Notes are blank here; onFormSubmit will fill them in.
 var nameParts = Utils.splitFullName(fullName);
 SheetService.appendRow(CONFIG.SPREADSHEET_ID, CONFIG.BOOKINGS_SHEET_NAME, [
   new Date(),                              //  1  Timestamp
-  CONFIG.DEFAULT_LOCATION       || '',     //  2  Location
-  CONFIG.DEFAULT_LOCATION_GROUP || '',     //  3  Location Group
+  location,                                //  2  Location
+  locationGroup,                           //  3  Location Group
   nameParts.firstName,                     //  4  First Name
   nameParts.lastName,                      //  5  Last Name
   phoneNumber,                             //  6  Phone
