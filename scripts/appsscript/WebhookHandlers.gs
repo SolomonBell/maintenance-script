@@ -149,8 +149,8 @@ EmailService.notify(
 
 // 6. Append booking row to the Bookings sheet.
 // Resolve location from the calendarName in the payload; fall back to defaults if unrecognised.
-var calendarName   = (payload.calendarName || '').trim();
-var locationEntry  = CONFIG.LOCATION_MAP[calendarName] || null;
+var bookingSource  = (payload.bookingSource || '').trim();
+var locationEntry  = CONFIG.LOCATION_MAP[bookingSource] || null;
 var location       = locationEntry ? locationEntry.location      : (CONFIG.DEFAULT_LOCATION       || '');
 var locationGroup  = locationEntry ? locationEntry.locationGroup : (CONFIG.DEFAULT_LOCATION_GROUP || '');
 // Request Type and Notes are blank here; onFormSubmit will fill them in.

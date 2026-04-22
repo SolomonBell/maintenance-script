@@ -32,8 +32,8 @@ var CONFIG = {
   DEFAULT_LOCATION:       PropertiesService.getScriptProperties().getProperty('DEFAULT_LOCATION'),
   DEFAULT_LOCATION_GROUP: PropertiesService.getScriptProperties().getProperty('DEFAULT_LOCATION_GROUP'),
 
-  // Maps the calendarName sent by Pipedream to Location and Location Group values.
-  // Keys must exactly match what Pipedream sends in payload.calendarName.
+  // Maps bookingSource (from Pipedream) to Location and Location Group values.
+  // Keys must exactly match what Pipedream sends in payload.bookingSource.
   LOCATION_MAP: {
     'Bainbridge Maintenance':                      { location: 'Bainbridge',               locationGroup: 'Group 1' },
     'Poulsbo Maintenance':                         { location: 'Poulsbo',                  locationGroup: 'Group 2' },
