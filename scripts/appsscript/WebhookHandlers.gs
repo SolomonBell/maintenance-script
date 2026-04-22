@@ -79,8 +79,11 @@ if (payload.eventType === 'docuseal_submission_completed') {
 }
 
 // 3. Validate required booking fields.
-
-var required = ['fullName', 'phoneNumber', 'unitNumber', 'email'];
+// booking.created only requires identity + calendar fields; phone and unit arrive later via form.
+var isBookingCreated = (payload.event || '').trim() === 'booking.created';
+var required = isBookingCreated
+  ? ['fullName', 'email']
+  : ['fullName', 'phoneNumber', 'unitNumber', 'email'];
 for (var i = 0; i < required.length; i++) {
   if (!payload[required[i]] || payload[required[i]].trim() === '') {
     return respond(400, { error: 'Missing required field: ' + required[i] });
@@ -88,8 +91,8 @@ for (var i = 0; i < required.length; i++) {
 }
 
 var fullName        = payload.fullName.trim();
-var phoneNumber     = payload.phoneNumber.trim();
-var unitNumber      = payload.unitNumber.trim();
+var phoneNumber     = (payload.phoneNumber || '').trim();
+var unitNumber      = (payload.unitNumber  || '').trim();
 var email           = payload.email.trim();
 var bookedDate      = (payload.bookedDate      || '').trim();
 var bookedTime      = (payload.bookedTime      || '').trim();

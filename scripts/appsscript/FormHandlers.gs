@@ -273,11 +273,10 @@ var FormHandlers = (function () {
    * @throws {Error} If any required field is missing.
    */
   function buildPrefilledUrl(fullName, phoneNumber, unitNumber, email) {
-    // Validate — all four fields are required
-    if (Utils.isEmpty(fullName))    throw new Error('buildPrefilledUrl: fullName is required');
-    if (Utils.isEmpty(phoneNumber)) throw new Error('buildPrefilledUrl: phoneNumber is required');
-    if (Utils.isEmpty(unitNumber))  throw new Error('buildPrefilledUrl: unitNumber is required');
-    if (Utils.isEmpty(email))       throw new Error('buildPrefilledUrl: email is required');
+    // fullName and email are always required; phoneNumber and unitNumber are
+    // optional at booking.created time and collected later via the form.
+    if (Utils.isEmpty(fullName)) throw new Error('buildPrefilledUrl: fullName is required');
+    if (Utils.isEmpty(email))    throw new Error('buildPrefilledUrl: email is required');
 
     var base = 'https://docs.google.com/forms/d/e/'
       + CONFIG.INTAKE_FORM_PUBLIC_ID
@@ -288,11 +287,17 @@ var FormHandlers = (function () {
     // encodeURIComponent handles spaces, ampersands, slashes, and other
     // characters that would otherwise break the query string.
     var params = [
-      fields.FULL_NAME    + '=' + encodeURIComponent(fullName),
-      fields.PHONE_NUMBER + '=' + encodeURIComponent(phoneNumber),
-      fields.UNIT_NUMBER  + '=' + encodeURIComponent(unitNumber),
-      fields.EMAIL        + '=' + encodeURIComponent(email),
+      fields.FULL_NAME + '=' + encodeURIComponent(fullName),
+      fields.EMAIL     + '=' + encodeURIComponent(email),
     ];
+
+    // Only pre-fill optional fields when values are available.
+    if (!Utils.isEmpty(phoneNumber)) {
+      params.push(fields.PHONE_NUMBER + '=' + encodeURIComponent(phoneNumber));
+    }
+    if (!Utils.isEmpty(unitNumber)) {
+      params.push(fields.UNIT_NUMBER + '=' + encodeURIComponent(unitNumber));
+    }
 
     return base + '&' + params.join('&');
   }
