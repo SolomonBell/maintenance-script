@@ -148,9 +148,13 @@ EmailService.notify(
 );
 
 // 6. Append booking row to the Bookings sheet.
-// Resolve location from the calendarName in the payload; fall back to defaults if unrecognised.
+// bookingSource is the booking page title sent by Pipedream; it maps to Location and Location Group.
+// Unmatched or missing values fall back to DEFAULT_LOCATION / DEFAULT_LOCATION_GROUP.
 var bookingSource  = (payload.bookingSource || '').trim();
 var locationEntry  = CONFIG.LOCATION_MAP[bookingSource] || null;
+if (!locationEntry) {
+  Logger.log('handlePipedream: bookingSource not matched in LOCATION_MAP ("' + bookingSource + '") — using defaults');
+}
 var location       = locationEntry ? locationEntry.location      : (CONFIG.DEFAULT_LOCATION       || '');
 var locationGroup  = locationEntry ? locationEntry.locationGroup : (CONFIG.DEFAULT_LOCATION_GROUP || '');
 // Request Type and Notes are blank here; onFormSubmit will fill them in.
