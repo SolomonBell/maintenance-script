@@ -22,6 +22,8 @@ var FormHandlers = (function () {
     var location    = (responses['Location']      || '').trim();
     var requestType = (responses['Request Type']  || '').trim();
     var notes       = (responses['Notes']         || '').trim();
+    var phoneNumber = (responses['Phone Number']  || '').trim();
+    var unitNumber  = (responses['Unit Number']   || '').trim();
 
     if (!email) {
       Logger.log('onSubmit: no email in form response — cannot match booking row');
@@ -72,10 +74,14 @@ var FormHandlers = (function () {
     var feeReqCol      = headers.indexOf('Fee Required')            + 1;
     var sigReqCol      = headers.indexOf('Signature Required')      + 1;
     var finalConfCol   = headers.indexOf('Final Confirmation Sent') + 1;
+    var phoneCol       = headers.indexOf('Phone')                   + 1;
+    var unitNumberCol  = headers.indexOf('Unit Number')             + 1;
 
     sheet.getRange(sheetRow, locationCol).setValue(location);
     sheet.getRange(sheetRow, requestTypeCol).setValue(requestType);
     sheet.getRange(sheetRow, notesCol).setValue(notes);
+    sheet.getRange(sheetRow, phoneCol).setValue(phoneNumber);
+    sheet.getRange(sheetRow, unitNumberCol).setValue(unitNumber);
     sheet.getRange(sheetRow, statusCol).setValue('Form Submitted');
 
     Logger.log('onSubmit: updated row ' + sheetRow + ' for email ' + email);
@@ -84,39 +90,43 @@ var FormHandlers = (function () {
     // Lock-cut bookings require payment + signature first.
     var isLockCut = requestType.toLowerCase().indexOf('lock') !== -1;
     if (!isLockCut) {
-      var row         = data[targetRowIndex];
-      var firstName   = row[headers.indexOf('First Name')]  || '';
-      var lastName    = row[headers.indexOf('Last Name')]   || '';
-      var phoneNumber = row[headers.indexOf('Phone')]       || '';
+      var row           = data[targetRowIndex];
+      var firstName     = row[headers.indexOf('First Name')]     || '';
+      var lastName      = row[headers.indexOf('Last Name')]      || '';
+      var locationGroup = row[headers.indexOf('Location Group')] || '';
+      var location      = row[headers.indexOf('Location')]       || '';
       var bookedDateRaw = row[headers.indexOf('Booked Date')];
       var bookedTimeRaw = row[headers.indexOf('Booked Time')];
-      var tz          = Session.getScriptTimeZone();
-      var bookedDate  = (bookedDateRaw instanceof Date)
+      var tz            = Session.getScriptTimeZone();
+      var bookedDate    = (bookedDateRaw instanceof Date)
         ? Utilities.formatDate(bookedDateRaw, tz, 'MMM d, yyyy')
         : (bookedDateRaw || '');
-      var bookedTime  = (bookedTimeRaw instanceof Date)
+      var bookedTime    = (bookedTimeRaw instanceof Date)
         ? Utilities.formatDate(bookedTimeRaw, tz, 'h:mm a')
         : (bookedTimeRaw || '');
-      var unitNumber  = row[headers.indexOf('Unit Number')] || '';
-      var fullName    = (firstName + ' ' + lastName).trim();
+      var fullName      = (firstName + ' ' + lastName).trim();
 
       EmailService.send(
         email,
-        'Your maintenance request is confirmed',
+        (location ? location + ' ' : '') + fullName + ' Confirmed',
         'Hi ' + fullName + ',\n\n'
-          + 'Your maintenance request has been confirmed'
+          + 'Your maintenance request'
+          + (location ? ' at ' + location : '')
+          + ' has been confirmed'
           + (bookedDate ? ' for ' + bookedDate : '')
           + (bookedTime ? ' at ' + bookedTime : '')
           + '.\n\n'
           + 'Our team will be ready at your unit'
           + (unitNumber ? ' (' + unitNumber + ')' : '')
-          + '.\n\n'
+          + '. No further action is required on your end.\n\n'
           + 'If you need to make changes or have questions, reply to this email.\n\n'
           + 'Thank you,\n'
           + 'Reliable Storage',
         {
           htmlBody: 'Hi ' + fullName + ',<br><br>'
-            + 'Your maintenance request has been confirmed'
+            + 'Your maintenance request'
+            + (location ? ' at ' + location : '')
+            + ' has been confirmed'
             + (bookedDate || bookedTime
                 ? ' for '
                   + (bookedDate ? bookedDate : '')
@@ -125,7 +135,7 @@ var FormHandlers = (function () {
             + '.<br><br>'
             + 'Our team will be ready at your unit'
             + (unitNumber ? ' (' + unitNumber + ')' : '')
-            + '.<br><br>'
+            + '. No further action is required on your end.<br><br>'
             + 'If you need to make changes or have questions, reply to this email.<br><br>'
             + 'Thank you,<br>Reliable Storage',
         }
@@ -134,32 +144,38 @@ var FormHandlers = (function () {
 
       // Notify the site manager that a non-lock-cut request has been confirmed.
       EmailService.notify(
-        'Confirmed maintenance request: ' + fullName + ' — Unit ' + unitNumber,
-        'A maintenance request has been confirmed.\n\n'
-          + 'Customer\n'
-          + fullName    + '\n'
-          + email       + '\n'
-          + phoneNumber + '\n'
-          + 'Unit ' + unitNumber + '\n\n'
-          + 'Request\n'
-          + requestType + '\n'
-          + (bookedDate && bookedTime
-              ? bookedDate + ' at ' + bookedTime + '\n'
-              : (bookedDate || bookedTime || '') + '\n')
-          + (notes ? '\nNotes\n' + notes + '\n' : ''),
+        (location || 'Unknown Location') + ' ' + fullName + ' Confirmed',
+        'Maintenance request confirmed.\n\n'
+          + 'Name: '           + fullName      + '\n'
+          + 'Email: '          + email         + '\n'
+          + 'Phone: '          + phoneNumber   + '\n'
+          + 'Unit: '           + unitNumber    + '\n'
+          + 'Location: '       + location      + '\n'
+          + 'Location Group: ' + locationGroup + '\n\n'
+          + 'Request Type: '   + requestType   + '\n'
+          + (bookedDate || bookedTime
+              ? 'Date/Time: ' + (bookedDate || '') + (bookedTime ? ' at ' + bookedTime : '') + '\n'
+              : '')
+          + 'Fee Required: False\n'
+          + 'Signature Required: False\n'
+          + (notes ? '\nNotes: ' + notes + '\n' : '')
+          + '\nStatus: Confirmed',
         {
-          htmlBody: 'A maintenance request has been confirmed.<br><br>'
-            + 'Customer<br>'
-            + fullName    + '<br>'
-            + email       + '<br>'
-            + phoneNumber + '<br>'
-            + 'Unit ' + unitNumber + '<br><br>'
-            + 'Request<br>'
-            + requestType + '<br>'
-            + (bookedDate && bookedTime
-                ? bookedDate + ' at ' + bookedTime
-                : (bookedDate || bookedTime || ''))
-            + (notes ? '<br><br>Notes<br>' + notes : ''),
+          htmlBody: 'Maintenance request confirmed.<br><br>'
+            +   'Name: '           + fullName      + '<br>'
+            +   'Email: '          + email         + '<br>'
+            +   'Phone: '          + phoneNumber   + '<br>'
+            +   'Unit: '           + unitNumber    + '<br>'
+            +   'Location: '       + location      + '<br>'
+            +   'Location Group: ' + locationGroup + '<br><br>'
+            +   'Request Type: '   + requestType   + '<br>'
+            +   (bookedDate || bookedTime
+                  ? 'Date/Time: ' + (bookedDate || '') + (bookedTime ? ' at ' + bookedTime : '') + '<br>'
+                  : '')
+            +   'Fee Required: False<br>'
+            +   'Signature Required: False<br>'
+            +   (notes ? '<br>Notes: ' + notes + '<br>' : '')
+            +   '<br>Status: Confirmed',
         }
       );
       Logger.log('onSubmit: manager notification sent for ' + email);
@@ -174,8 +190,9 @@ var FormHandlers = (function () {
       var lcRow             = data[targetRowIndex];
       var lcFirstName       = lcRow[headers.indexOf('First Name')]        || '';
       var lcLastName        = lcRow[headers.indexOf('Last Name')]         || '';
-      var lcUnitNumber      = lcRow[headers.indexOf('Unit Number')]       || '';
       var lcCalendarEventId = lcRow[headers.indexOf('Calendar Event ID')] || '';
+      var lcLocationGroup   = lcRow[headers.indexOf('Location Group')]    || '';
+      var lcLocation        = lcRow[headers.indexOf('Location')]           || '';
       var lcFullName        = (lcFirstName + ' ' + lcLastName).trim();
 
       // Create a Stripe Checkout Session for the $50 lock cut fee.
@@ -184,7 +201,7 @@ var FormHandlers = (function () {
         lcFullName,
         {
           bookingEmail:    email,
-          unitNumber:      lcUnitNumber,
+          unitNumber:      unitNumber,
           requestType:     requestType,
           calendarEventId: lcCalendarEventId,
         }
@@ -209,10 +226,11 @@ var FormHandlers = (function () {
 
       EmailService.send(
         email,
-        'Action required: complete payment and signature for your lock cut',
+        (lcLocation ? lcLocation + ' ' : '') + lcFullName + ' Action Required',
         'Hi ' + lcFullName + ',\n\n'
           + 'Thank you for submitting your maintenance request'
-          + (lcUnitNumber ? ' for unit ' + lcUnitNumber : '')
+          + (lcLocation ? ' at ' + lcLocation : '')
+          + (unitNumber ? ' for unit ' + unitNumber : '')
           + '.\n\n'
           + 'Before we can confirm your appointment, please complete both steps below:\n\n'
           + '  1. Pay the $50 lock cut fee:\n'
@@ -226,7 +244,8 @@ var FormHandlers = (function () {
         {
           htmlBody: 'Hi ' + lcFullName + ',<br><br>'
             + 'Thank you for submitting your maintenance request'
-            + (lcUnitNumber ? ' for unit ' + lcUnitNumber : '')
+            + (lcLocation ? ' at ' + lcLocation : '')
+            + (unitNumber ? ' for unit ' + unitNumber : '')
             + '.<br><br>'
             + 'Before we can confirm your appointment, please complete both steps below:<br><br>'
             + '1. Pay the $50 lock cut fee<br>'
@@ -239,6 +258,42 @@ var FormHandlers = (function () {
         }
       );
       Logger.log('onSubmit: lock-cut email sent to ' + email + ' — session ' + session.id + ', docuseal submitter ' + docusealResult[0].email);
+
+      // Notify the site manager that payment and signature links were sent.
+      EmailService.notify(
+        (lcLocation || 'Unknown Location') + ' ' + lcFullName + ' Pending',
+        'Lock cut request received. Payment and signature links sent to customer.\n\n'
+          + 'Name: '               + lcFullName      + '\n'
+          + 'Email: '              + email           + '\n'
+          + 'Phone: '              + phoneNumber     + '\n'
+          + 'Unit: '               + unitNumber      + '\n'
+          + 'Location: '           + lcLocation       + '\n'
+          + 'Location Group: '     + lcLocationGroup + '\n\n'
+          + 'Request Type: '       + requestType     + '\n'
+          + (notes ? 'Notes: ' + notes + '\n\n' : '\n')
+          + 'Fee Required: True\n'
+          + 'Fee Paid: False\n'
+          + 'Signature Required: True\n'
+          + 'Signature Complete: False\n\n'
+          + 'Status: Pending Payment + Signature',
+        {
+          htmlBody: 'Lock cut request received. Payment and signature links sent to customer.<br><br>'
+            +   'Name: '               + lcFullName      + '<br>'
+            +   'Email: '              + email           + '<br>'
+            +   'Phone: '              + phoneNumber     + '<br>'
+            +   'Unit: '               + unitNumber      + '<br>'
+            +   'Location: '           + lcLocation       + '<br>'
+            +   'Location Group: '     + lcLocationGroup + '<br><br>'
+            +   'Request Type: '       + requestType     + '<br>'
+            +   (notes ? 'Notes: ' + notes + '<br><br>' : '<br>')
+            +   'Fee Required: True<br>'
+            +   'Fee Paid: False<br>'
+            +   'Signature Required: True<br>'
+            +   'Signature Complete: False<br><br>'
+            +   'Status: Pending Payment + Signature',
+        }
+      );
+      Logger.log('onSubmit: lock-cut manager notification sent for ' + email);
     }
   }
 

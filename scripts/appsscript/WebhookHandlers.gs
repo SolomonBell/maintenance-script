@@ -100,15 +100,28 @@ var calendarEventId = (payload.calendarEventId || '').trim();
 
 Logger.log('handlePipedream: event=' + (payload.event || 'unspecified') + ' email=' + email + ' calendarEventId=' + calendarEventId);
 
+// Resolve location before sending any emails.
+// bookingSource is the booking page title sent by Pipedream; it maps to Location and Location Group.
+// Unmatched or missing values fall back to DEFAULT_LOCATION / DEFAULT_LOCATION_GROUP.
+var bookingSource = (payload.bookingSource || '').trim();
+var locationEntry = CONFIG.LOCATION_MAP[bookingSource] || null;
+if (!locationEntry) {
+  Logger.log('handlePipedream: bookingSource not matched in LOCATION_MAP ("' + bookingSource + '") — using defaults');
+}
+var location      = locationEntry ? locationEntry.location      : (CONFIG.DEFAULT_LOCATION       || '');
+var locationGroup = locationEntry ? locationEntry.locationGroup : (CONFIG.DEFAULT_LOCATION_GROUP || '');
+
 // 3. Build the pre-filled intake form URL.
 var formUrl = FormHandlers.buildPrefilledUrl(fullName, phoneNumber, unitNumber, email);
 
 // 4. Send the email to the customer.
 EmailService.send(
   email,
-  'Action Required: Complete Your Maintenance Intake Form',
+  (location ? location + ' ' : '') + fullName + ' Intake Form',
   'Hi ' + fullName + ',\n\n'
-    + 'Thanks for scheduling your maintenance appointment with Reliable Storage.\n\n'
+    + 'Thanks for scheduling your maintenance appointment with Reliable Storage'
+    + (location ? ' at ' + location : '')
+    + '.\n\n'
     + 'To help us prepare, please complete this short intake form before your appointment:\n\n'
     + formUrl + '\n\n'
     + 'This form should take less than a minute and allows our team to understand your request ahead of time.\n\n'
@@ -118,7 +131,9 @@ EmailService.send(
     + 'Reliable Storage',
   {
     htmlBody: 'Hi ' + fullName + ',<br><br>'
-      + 'Thanks for scheduling your maintenance appointment with Reliable Storage.<br><br>'
+      + 'Thanks for scheduling your maintenance appointment with Reliable Storage'
+      + (location ? ' at ' + location : '')
+      + '.<br><br>'
       + 'To help us prepare, please complete this short intake form before your appointment:<br><br>'
       + '<a href="' + formUrl + '">Complete Your Intake Form</a><br><br>'
       + 'This form should take less than a minute and allows our team to understand your request ahead of time.<br><br>'
@@ -129,34 +144,37 @@ EmailService.send(
 );
 
 // 5. Send internal notification.
+var intakeDateTimeLine = (bookedDate || bookedTime)
+  ? 'Date/Time: ' + (bookedDate || '') + (bookedTime ? ' at ' + bookedTime : '') + '\n'
+  : '';
+var intakeDateTimeLineHtml = (bookedDate || bookedTime)
+  ? 'Date/Time: ' + (bookedDate || '') + (bookedTime ? ' at ' + bookedTime : '') + '<br>'
+  : '';
 EmailService.notify(
-  'New booking: ' + fullName + ' — Unit ' + unitNumber,
-  'New booking received.\n\n'
-    + 'Name: '  + fullName    + '\n'
-    + 'Email: ' + email       + '\n'
-    + 'Phone: ' + phoneNumber + '\n'
-    + 'Unit: '  + unitNumber  + '\n'
-    + '\nIntake form link has been sent to the customer.',
+  (location || 'Unknown Location') + ' ' + fullName + ' New Booking',
+  'New booking received. Intake form sent to customer.\n\n'
+    + 'Name: '           + fullName      + '\n'
+    + 'Email: '          + email         + '\n'
+    + (phoneNumber ? 'Phone: ' + phoneNumber + '\n' : '')
+    + (unitNumber  ? 'Unit: '  + unitNumber  + '\n' : '')
+    + 'Location: '       + location      + '\n'
+    + 'Location Group: ' + locationGroup + '\n'
+    + intakeDateTimeLine
+    + 'Status: Intake Sent',
   {
-    htmlBody: 'New booking received.<br><br>'
-      +   'Name: '  + fullName    + '<br>'
-      +   'Email: ' + email       + '<br>'
-      +   'Phone: ' + phoneNumber + '<br>'
-      +   'Unit: '  + unitNumber  + '<br><br>'
-      + 'Intake form link has been sent to the customer.',
+    htmlBody: 'New booking received. Intake form sent to customer.<br><br>'
+      +   'Name: '           + fullName      + '<br>'
+      +   'Email: '          + email         + '<br>'
+      +   (phoneNumber ? 'Phone: ' + phoneNumber + '<br>' : '')
+      +   (unitNumber  ? 'Unit: '  + unitNumber  + '<br>' : '')
+      +   'Location: '       + location      + '<br>'
+      +   'Location Group: ' + locationGroup + '<br>'
+      +   intakeDateTimeLineHtml
+      +   'Status: Intake Sent',
   }
 );
 
 // 6. Append booking row to the Bookings sheet.
-// bookingSource is the booking page title sent by Pipedream; it maps to Location and Location Group.
-// Unmatched or missing values fall back to DEFAULT_LOCATION / DEFAULT_LOCATION_GROUP.
-var bookingSource  = (payload.bookingSource || '').trim();
-var locationEntry  = CONFIG.LOCATION_MAP[bookingSource] || null;
-if (!locationEntry) {
-  Logger.log('handlePipedream: bookingSource not matched in LOCATION_MAP ("' + bookingSource + '") — using defaults');
-}
-var location       = locationEntry ? locationEntry.location      : (CONFIG.DEFAULT_LOCATION       || '');
-var locationGroup  = locationEntry ? locationEntry.locationGroup : (CONFIG.DEFAULT_LOCATION_GROUP || '');
 // Request Type and Notes are blank here; onFormSubmit will fill them in.
 var nameParts = Utils.splitFullName(fullName);
 SheetService.appendRow(CONFIG.SPREADSHEET_ID, CONFIG.BOOKINGS_SHEET_NAME, [
@@ -347,20 +365,25 @@ function checkAndFinalize(sheet, sheetRow, headers, email) {
   var bookedTime = (bookedTimeRaw instanceof Date)
     ? Utilities.formatDate(bookedTimeRaw, tz, 'h:mm a')
     : (bookedTimeRaw || '');
-  var requestType = row[headers.indexOf('Request Type')] || '';
-  var fullName    = (firstName + ' ' + lastName).trim();
+  var requestType       = row[headers.indexOf('Request Type')]       || '';
+  var location          = row[headers.indexOf('Location')]           || '';
+  var locationGroup     = row[headers.indexOf('Location Group')]     || '';
+  var feeRequired       = row[headers.indexOf('Fee Required')]       || '';
+  var sigRequired       = row[headers.indexOf('Signature Required')] || '';
+  var fullName          = (firstName + ' ' + lastName).trim();
 
   EmailService.send(
     email,
-    'Your lock cut appointment is confirmed',
+    (location ? location + ' ' : '') + fullName + ' Confirmed',
     'Hi ' + fullName + ',\n\n'
       + 'Great news — your lock cut appointment is confirmed'
       + (bookedDate ? ' for ' + bookedDate : '')
       + (bookedTime ? ' at ' + bookedTime : '')
+      + (location ? ' at ' + location : '')
       + '.\n\n'
       + 'Our team will be ready at your unit'
       + (unitNumber ? ' (' + unitNumber + ')' : '')
-      + '.\n\n'
+      + '. No further action is required on your end.\n\n'
       + 'If you have any questions, reply to this email.\n\n'
       + 'Thank you,\n'
       + 'Reliable Storage',
@@ -372,10 +395,11 @@ function checkAndFinalize(sheet, sheetRow, headers, email) {
               + (bookedDate ? bookedDate : '')
               + (bookedTime ? ' at ' + bookedTime : '')
             : '')
+        + (location ? ' at ' + location : '')
         + '.<br><br>'
         + 'Our team will be ready at your unit'
         + (unitNumber ? ' (' + unitNumber + ')' : '')
-        + '.<br><br>'
+        + '. No further action is required on your end.<br><br>'
         + 'If you have any questions, reply to this email.<br><br>'
         + 'Thank you,<br>Reliable Storage',
     }
@@ -383,24 +407,38 @@ function checkAndFinalize(sheet, sheetRow, headers, email) {
   Logger.log('checkAndFinalize: confirmation email sent to ' + email);
 
   EmailService.notify(
-    'Lock cut confirmed: ' + fullName + ' — Unit ' + unitNumber,
+    (location || 'Unknown Location') + ' ' + fullName + ' Confirmed',
     'Lock cut appointment confirmed.\n\n'
-      + 'Name: '         + fullName    + '\n'
-      + 'Email: '        + email       + '\n'
-      + 'Phone: '        + phoneNumber + '\n'
-      + 'Unit: '         + unitNumber  + '\n'
-      + 'Request Type: ' + requestType + '\n\n'
-      + 'Date: '         + bookedDate  + '\n'
-      + 'Time: '         + bookedTime  + '\n',
+      + 'Name: '               + fullName     + '\n'
+      + 'Email: '              + email        + '\n'
+      + 'Phone: '              + phoneNumber  + '\n'
+      + 'Unit: '               + unitNumber   + '\n'
+      + 'Location: '           + location     + '\n'
+      + 'Location Group: '     + locationGroup + '\n'
+      + 'Request Type: '       + requestType  + '\n\n'
+      + 'Date: '               + bookedDate   + '\n'
+      + 'Time: '               + bookedTime   + '\n\n'
+      + 'Fee Required: '       + feeRequired  + '\n'
+      + 'Fee Paid: True\n'
+      + 'Signature Required: ' + sigRequired  + '\n'
+      + 'Signature Complete: True\n\n'
+      + 'Status: Confirmed',
     {
       htmlBody: 'Lock cut appointment confirmed.<br><br>'
-        +   'Name: '         + fullName    + '<br>'
-        +   'Email: '        + email       + '<br>'
-        +   'Phone: '        + phoneNumber + '<br>'
-        +   'Unit: '         + unitNumber  + '<br>'
-        +   'Request Type: ' + requestType + '<br><br>'
-        +   'Date: ' + bookedDate + '<br>'
-        +   'Time: ' + bookedTime,
+        +   'Name: '               + fullName      + '<br>'
+        +   'Email: '              + email         + '<br>'
+        +   'Phone: '              + phoneNumber   + '<br>'
+        +   'Unit: '               + unitNumber    + '<br>'
+        +   'Location: '           + location      + '<br>'
+        +   'Location Group: '     + locationGroup + '<br>'
+        +   'Request Type: '       + requestType   + '<br><br>'
+        +   'Date: '               + bookedDate    + '<br>'
+        +   'Time: '               + bookedTime    + '<br><br>'
+        +   'Fee Required: '       + feeRequired   + '<br>'
+        +   'Fee Paid: True<br>'
+        +   'Signature Required: ' + sigRequired   + '<br>'
+        +   'Signature Complete: True<br><br>'
+        +   'Status: Confirmed',
     }
   );
   Logger.log('checkAndFinalize: manager notification sent for ' + email);
