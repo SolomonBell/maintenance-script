@@ -112,7 +112,11 @@ var location      = locationEntry ? locationEntry.location      : (CONFIG.DEFAUL
 var locationGroup = locationEntry ? locationEntry.locationGroup : (CONFIG.DEFAULT_LOCATION_GROUP || '');
 
 // 3. Build the pre-filled intake form URL.
-var formUrl = FormHandlers.buildPrefilledUrl(fullName, phoneNumber, unitNumber, email);
+// Only prefill Location for single-location booking pages (Groups 1-3).
+// Groups 4-5 cover multiple locations — customer must choose manually.
+var singleLocationGroups = { 'Group 1': true, 'Group 2': true, 'Group 3': true };
+var locationPrefill = singleLocationGroups[locationGroup] ? location : '';
+var formUrl = FormHandlers.buildPrefilledUrl(fullName, phoneNumber, unitNumber, email, locationPrefill);
 
 // 4. Send the email to the customer.
 EmailService.send(

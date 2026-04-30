@@ -327,7 +327,7 @@ var FormHandlers = (function () {
    * @returns {string} The pre-filled form URL.
    * @throws {Error} If any required field is missing.
    */
-  function buildPrefilledUrl(fullName, phoneNumber, unitNumber, email) {
+  function buildPrefilledUrl(fullName, phoneNumber, unitNumber, email, locationPrefill) {
     // fullName and email are always required; phoneNumber and unitNumber are
     // optional at booking.created time and collected later via the form.
     if (Utils.isEmpty(fullName)) throw new Error('buildPrefilledUrl: fullName is required');
@@ -352,6 +352,9 @@ var FormHandlers = (function () {
     }
     if (!Utils.isEmpty(unitNumber)) {
       params.push(fields.UNIT_NUMBER + '=' + encodeURIComponent(unitNumber));
+    }
+    if (!Utils.isEmpty(locationPrefill) && !Utils.isEmpty(fields.LOCATION)) {
+      params.push(fields.LOCATION + '=' + encodeURIComponent(locationPrefill));
     }
 
     return base + '&' + params.join('&');
