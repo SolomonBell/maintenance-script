@@ -123,7 +123,7 @@ EmailService.send(
   email,
   (location ? location + ' ' : '') + fullName + ' Intake Form',
   'Hi ' + fullName + ',\n\n'
-    + 'Thanks for scheduling your maintenance appointment with Reliable Storage'
+    + 'Thanks for scheduling your maintenance appointment with ' + CONFIG.COMPANY_NAME
     + (location ? ' at ' + location : '')
     + '.\n\n'
     + 'To help us prepare, please complete this short intake form before your appointment:\n\n'
@@ -132,10 +132,10 @@ EmailService.send(
     + 'If your issue requires immediate assistance (such as a lockout), please call your local office directly instead of using this form.\n\n'
     + 'If you have any questions, feel free to reply to this email.\n\n'
     + 'Thank you,\n'
-    + 'Reliable Storage',
+    + CONFIG.COMPANY_NAME,
   {
     htmlBody: 'Hi ' + fullName + ',<br><br>'
-      + 'Thanks for scheduling your maintenance appointment with Reliable Storage'
+      + 'Thanks for scheduling your maintenance appointment with ' + CONFIG.COMPANY_NAME
       + (location ? ' at ' + location : '')
       + '.<br><br>'
       + 'To help us prepare, please complete this short intake form before your appointment:<br><br>'
@@ -143,7 +143,7 @@ EmailService.send(
       + 'This form should take less than a minute and allows our team to understand your request ahead of time.<br><br>'
       + 'If your issue requires immediate assistance (such as a lockout), please call your local office directly instead of using this form.<br><br>'
       + 'If you have any questions, feel free to reply to this email.<br><br>'
-      + 'Thank you,<br>Reliable Storage',
+      + 'Thank you,<br>' + CONFIG.COMPANY_NAME,
   }
 );
 
@@ -390,7 +390,7 @@ function checkAndFinalize(sheet, sheetRow, headers, email) {
       + '. No further action is required on your end.\n\n'
       + 'If you have any questions, reply to this email.\n\n'
       + 'Thank you,\n'
-      + 'Reliable Storage',
+      + CONFIG.COMPANY_NAME,
     {
       htmlBody: 'Hi ' + fullName + ',<br><br>'
         + 'Great news — your lock cut appointment is confirmed'
@@ -405,7 +405,7 @@ function checkAndFinalize(sheet, sheetRow, headers, email) {
         + (unitNumber ? ' (' + unitNumber + ')' : '')
         + '. No further action is required on your end.<br><br>'
         + 'If you have any questions, reply to this email.<br><br>'
-        + 'Thank you,<br>Reliable Storage',
+        + 'Thank you,<br>' + CONFIG.COMPANY_NAME,
     }
   );
   Logger.log('checkAndFinalize: confirmation email sent to ' + email);

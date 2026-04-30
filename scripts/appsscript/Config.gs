@@ -21,6 +21,10 @@ var CONFIG = {
   // Notifications
   NOTIFICATION_EMAIL: PropertiesService.getScriptProperties().getProperty('NOTIFICATION_EMAIL'),
 
+  // Business — used in outbound email copy
+  COMPANY_NAME: PropertiesService.getScriptProperties().getProperty('COMPANY_NAME') || 'Reliable Storage',
+  LOCK_CUT_FEE: PropertiesService.getScriptProperties().getProperty('LOCK_CUT_FEE') || '$50',
+
   // Pipedream
   PIPEDREAM_SECRET: PropertiesService.getScriptProperties().getProperty('PIPEDREAM_SECRET'),
 

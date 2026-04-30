@@ -51,7 +51,7 @@ Pipedream acts as the integration layer between all external services and the Ap
 ## Standard Booking Flow
 
 1. Customer books a maintenance appointment via Google Appointment Schedules
-2. Pipedream detects the new Calendar event, extracts customer fields, and POSTs them to the Apps Script web app
+2. Pipedream detects the new Calendar event, extracts customer fields (including a `bookingSource` field that identifies the booking page), and POSTs them to the Apps Script web app
 3. Apps Script emails the customer a pre-filled intake form link via SendGrid and appends a booking row to the Bookings sheet (status: `Intake Sent`)
 4. Customer submits the intake form
 5. Apps Script locates the booking row by email address, writes Request Type and Notes, and sets status to `Form Submitted`
@@ -73,25 +73,85 @@ Steps 8 and 9 can complete in either order; finalization triggers only when both
 
 ---
 
+## Configuration
+
+All sensitive values and instance-specific identifiers are stored as **Script Properties** in the Apps Script project. No secrets or IDs are hard-coded in this repository. See [`.env.example`](.env.example) for the full list of required keys and placeholder values.
+
+To set Script Properties in Apps Script:
+**Project Settings (gear icon) → Script Properties → Add script property**
+
+| Property | Description |
+|---|---|
+| `SPREADSHEET_ID` | Google Sheets spreadsheet ID |
+| `BOOKINGS_SHEET_NAME` | Sheet tab name (e.g. `Bookings`) |
+| `SENDGRID_API_KEY` | SendGrid API key |
+| `SENDGRID_FROM_EMAIL` | Sender email address |
+| `SENDGRID_FROM_NAME` | Sender display name |
+| `STRIPE_SECRET_KEY` | Stripe secret key |
+| `STRIPE_PRICE_ID` | Stripe Price ID for the lock cut fee |
+| `STRIPE_SUCCESS_URL` | Post-payment redirect URL |
+| `STRIPE_CANCEL_URL` | Cancelled-payment redirect URL |
+| `DOCUSEAL_API_KEY` | DocuSeal API key |
+| `DOCUSEAL_BASE_URL` | DocuSeal API base URL |
+| `DOCUSEAL_TEMPLATE_ID` | DocuSeal template ID for the release form |
+| `NOTIFICATION_EMAIL` | Internal address for booking notifications |
+| `PIPEDREAM_SECRET` | Shared secret for authenticating Pipedream webhooks |
+| `INTAKE_FORM_PUBLIC_ID` | Google Form public ID (`/d/e/<ID>/viewform`) |
+| `INTAKE_FORM_EDIT_ID` | Google Form edit ID (`/d/<ID>/edit`) |
+| `INTAKE_FORM_FIELD_FULL_NAME` | Form entry ID for Full Name (`entry.XXXXXXXXX`) |
+| `INTAKE_FORM_FIELD_PHONE_NUMBER` | Form entry ID for Phone Number |
+| `INTAKE_FORM_FIELD_UNIT_NUMBER` | Form entry ID for Unit Number |
+| `INTAKE_FORM_FIELD_EMAIL` | Form entry ID for Email |
+| `INTAKE_FORM_FIELD_REQUEST_TYPE` | Form entry ID for Request Type |
+| `INTAKE_FORM_FIELD_NOTES` | Form entry ID for Notes |
+| `INTAKE_FORM_FIELD_LOCATION` | Form entry ID for Location |
+| `DEFAULT_LOCATION` | Fallback location when `bookingSource` is unrecognized |
+| `DEFAULT_LOCATION_GROUP` | Fallback location group when `bookingSource` is unrecognized |
+| `COMPANY_NAME` | Company name in outbound emails (default: `Reliable Storage`) |
+| `LOCK_CUT_FEE` | Fee shown in lock-cut emails (default: `$50`) |
+
+### Location Routing
+
+Incoming Pipedream webhooks include a `bookingSource` field whose value must exactly match a key in `CONFIG.LOCATION_MAP` in [`Config.gs`](scripts/appsscript/Config.gs). Each entry maps a booking page title to a location name and location group:
+
+```javascript
+LOCATION_MAP: {
+  'My Location Maintenance': { location: 'My Location', locationGroup: 'Group 1' },
+  // add one entry per booking page
+}
+```
+
+Update `LOCATION_MAP` to match your booking page titles. If `bookingSource` is absent or unrecognized, the booking falls back to `DEFAULT_LOCATION` / `DEFAULT_LOCATION_GROUP`.
+
+Location groups `Group 1`–`Group 3` trigger automatic location pre-fill in the intake form URL. Groups `Group 4`–`Group 5` serve multi-location pages where the customer selects their location manually. This is controlled by `singleLocationGroups` in `WebhookHandlers.gs`.
+
+---
+
 ## Bookings Sheet Schema
 
 | # | Column | Written by |
 |---|---|---|
-| 1 | Timestamp | Pipedream webhook |
-| 2 | First Name | Pipedream webhook |
-| 3 | Last Name | Pipedream webhook |
-| 4 | Phone | Pipedream webhook |
-| 5 | Email | Pipedream webhook |
-| 6 | Unit Number | Pipedream webhook |
-| 7 | Request Type | Form submit |
-| 8 | Booked Date | Pipedream webhook |
-| 9 | Booked Time | Pipedream webhook |
-| 10 | Notes | Form submit |
-| 11 | Status | Updated throughout flow |
-| 12 | Calendar Event ID | Pipedream webhook |
-| 13 | Stripe Payment ID | Stripe completion webhook |
-| 14 | Docuseal Document ID | DocuSeal completion webhook |
-| 15 | Confirmation Sent | Pipedream webhook |
+| 1 | Timestamp | `handlePipedream` on booking created |
+| 2 | Location | `handlePipedream` on booking created |
+| 3 | Location Group | `handlePipedream` on booking created |
+| 4 | First Name | `handlePipedream` on booking created |
+| 5 | Last Name | `handlePipedream` on booking created |
+| 6 | Phone | `handlePipedream` on booking created |
+| 7 | Email | `handlePipedream` on booking created |
+| 8 | Unit Number | `handlePipedream` on booking created |
+| 9 | Request Type | `onFormSubmit` |
+| 10 | Booked Date | `handlePipedream` on booking created |
+| 11 | Booked Time | `handlePipedream` on booking created |
+| 12 | Notes | `onFormSubmit` |
+| 13 | Status | Updated throughout flow |
+| 14 | Fee Required | `onFormSubmit` (lock cut path) |
+| 15 | Fee Paid | `handleStripeCompleted` |
+| 16 | Signature Required | `onFormSubmit` (lock cut path) |
+| 17 | Signature Complete | `handleDocusealCompleted` |
+| 18 | Calendar Event ID | `handlePipedream` on booking created |
+| 19 | Stripe Payment ID | `handleStripeCompleted` |
+| 20 | DocuSeal Document ID | `handleDocusealCompleted` |
+| 21 | Final Confirmation Sent | `checkAndFinalize` or `onFormSubmit` |
 
 ---
 

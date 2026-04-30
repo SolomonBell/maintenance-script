@@ -4,7 +4,7 @@ End-to-end verification checklist for the Pipedream → Apps Script booking
 integration. Work through each stage in order. Do not proceed to the next stage
 until the expected result for the current one is confirmed.
 
-Reference: `booking-workflow-reference.md`
+Reference: [`booking-workflow-reference.md`](booking-workflow-reference.md)
 
 ---
 
@@ -17,41 +17,58 @@ Reference: `booking-workflow-reference.md`
 - [ ] Set **Who has access:** Anyone (even anonymous)
 - [ ] Set **Type:** Web app
 - [ ] Click **Deploy** and copy the web app URL
-- [ ] Save the URL — you will need it in Stage 4
+- [ ] Save the URL — you will need it in Stages 7, 9, and 10
 
-**Expected result:** A URL in the form
+**Expected result:** A URL of the form
 `https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec` is available.
 Visiting it in a browser returns `{"status":"ok"}`.
 
 > If you make any code changes to the Apps Script project after this point,
 > click **Manage deployments → Edit → Deploy** to update the same deployment.
-> Creating a new deployment changes the URL.
+> Creating a new deployment changes the URL and requires updating all Pipedream
+> workflows.
 
 ---
 
 ## Stage 2 — Set Script Properties
 
-In the Apps Script editor, go to
-**Project Settings (gear icon) → Script Properties → Add script property**
-and add the following keys:
+In the Apps Script editor go to
+**Project Settings (gear icon) → Script Properties → Add script property**.
 
-- [ ] `PIPEDREAM_SECRET` — a strong random string you generate (keep a copy)
-- [ ] `SPREADSHEET_ID` — your Google Sheets ID (if used; can be a placeholder for now)
-- [ ] `INTAKE_FORM_ID` — your Google Form ID (can be a placeholder for now)
-- [ ] `NOTIFICATION_EMAIL` — your email address
+Set all properties listed in `.env.example` at the project root. The minimum
+set required to run the booking-created flow end-to-end:
 
-> `PIPEDREAM_SECRET` is the only property strictly required for this workflow.
-> The others can be set to placeholder strings until those features are built.
+- [ ] `PIPEDREAM_SECRET` — a strong random string (must match `GAS_PIPEDREAM_SECRET` in Pipedream exactly)
+- [ ] `SPREADSHEET_ID` — your Bookings spreadsheet ID
+- [ ] `BOOKINGS_SHEET_NAME` — your Bookings sheet tab name (e.g. `Bookings`)
+- [ ] `SENDGRID_API_KEY` — your SendGrid API key
+- [ ] `SENDGRID_FROM_EMAIL` — the From address for outbound emails
+- [ ] `SENDGRID_FROM_NAME` — the From display name for outbound emails
+- [ ] `NOTIFICATION_EMAIL` — the internal address to receive booking notifications
+- [ ] `INTAKE_FORM_PUBLIC_ID` — your Google Form public ID
+- [ ] `INTAKE_FORM_EDIT_ID` — your Google Form edit ID
+- [ ] `INTAKE_FORM_FIELD_FULL_NAME` — entry ID for the Full Name field
+- [ ] `INTAKE_FORM_FIELD_PHONE_NUMBER` — entry ID for the Phone Number field
+- [ ] `INTAKE_FORM_FIELD_UNIT_NUMBER` — entry ID for the Unit Number field
+- [ ] `INTAKE_FORM_FIELD_EMAIL` — entry ID for the Email field
+- [ ] `INTAKE_FORM_FIELD_REQUEST_TYPE` — entry ID for the Request Type field
+- [ ] `INTAKE_FORM_FIELD_NOTES` — entry ID for the Notes field
+- [ ] `INTAKE_FORM_FIELD_LOCATION` — entry ID for the Location field
+- [ ] `DEFAULT_LOCATION` — fallback location name
+- [ ] `DEFAULT_LOCATION_GROUP` — fallback location group
+
+Set the remaining properties (`STRIPE_*`, `DOCUSEAL_*`) before testing
+Stages 9 and 10. See `.env.example` for the complete list with descriptions.
 
 **Expected result:** All properties are saved with no errors. The Apps Script
-editor shows them listed under Script Properties.
+editor lists them under Script Properties.
 
 ---
 
-## Stage 3 — Create the Pipedream Workflow
+## Stage 3 — Create the Pipedream Booking Created Workflow
 
 - [ ] Log in to Pipedream and click **New Workflow**
-- [ ] Name the workflow: `Booking — Send Intake Form`
+- [ ] Name the workflow: `Booking — New Booking Created`
 - [ ] Save the workflow (do not publish yet)
 
 **Expected result:** An empty workflow canvas is open and saved.
@@ -64,11 +81,10 @@ Before configuring steps, add the shared secret:
 
 - [ ] Go to Pipedream **Settings → Environment Variables**
 - [ ] Add variable: `GAS_PIPEDREAM_SECRET`
-- [ ] Set the value to the exact same string you set for `PIPEDREAM_SECRET`
-      in Script Properties — they must match character-for-character
+- [ ] Set the value to the exact same string as `PIPEDREAM_SECRET` in Script Properties — they must match character-for-character (watch for trailing whitespace)
 
 **Expected result:** `GAS_PIPEDREAM_SECRET` appears in the environment variables
-list. The value is not visible after saving (this is expected).
+list. The value is masked after saving (this is expected).
 
 ---
 
@@ -78,15 +94,12 @@ list. The value is not visible after saving (this is expected).
 - [ ] Select **Google Calendar**
 - [ ] Select trigger event: **New Event**
 - [ ] Connect your Google account if not already connected
-- [ ] Select the calendar that receives Appointment Schedules bookings
+- [ ] Select the calendar that receives Appointment Schedule bookings
       (find the Calendar ID under Calendar settings → Integrate calendar)
 - [ ] Click **Save and continue**
-- [ ] Pipedream will ask you to generate a test event — skip for now and
-      use a real or mock event in Stage 7
 
 **Expected result:** The trigger step shows as configured with your calendar.
-Pipedream displays a sample event object in the trigger's output panel (it may
-use a previously cached event).
+Pipedream displays a sample event object in the trigger's output panel.
 
 ---
 
@@ -95,22 +108,29 @@ use a previously cached event).
 - [ ] Click **+** below the trigger to add a step
 - [ ] Select **Run Node.js code**
 - [ ] Rename the step to `extract_booking_fields`
-- [ ] Paste the full code from the **Step 1** section of
+- [ ] Paste the code from the **Step 1** section of
       `booking-workflow-reference.md`
+- [ ] Update the `bookingSource` constant to match one of the keys in
+      `CONFIG.LOCATION_MAP` in `Config.gs` (see the `bookingSource` note in
+      the reference doc)
 - [ ] Click **Test** to run the step against the sample trigger event
 
-**Expected result:** The step output panel shows a JSON object with all four
-fields populated:
+**Expected result:** The step output panel shows a JSON object with all fields
+populated:
 ```json
 {
   "email": "customer@example.com",
   "fullName": "Jane Smith",
   "phoneNumber": "555-0100",
-  "unitNumber": "4B"
+  "unitNumber": "4B",
+  "bookedDate": "2026-05-01",
+  "bookedTime": "10:00",
+  "calendarEventId": "abc123...",
+  "bookingSource": "Your Booking Page Title"
 }
 ```
 If the step throws, check the error message — it will name the missing field
-and print the raw event description. See Troubleshooting below.
+and print the raw event description.
 
 ---
 
@@ -127,23 +147,30 @@ and print the raw event description. See Troubleshooting below.
 - [ ] Set the request body to:
       ```json
       {
-        "event":       "booking.created",
-        "secret":      "{{process.env.GAS_PIPEDREAM_SECRET}}",
-        "fullName":    "{{steps.extract_booking_fields.$return_value.fullName}}",
-        "phoneNumber": "{{steps.extract_booking_fields.$return_value.phoneNumber}}",
-        "unitNumber":  "{{steps.extract_booking_fields.$return_value.unitNumber}}",
-        "email":       "{{steps.extract_booking_fields.$return_value.email}}"
+        "event":           "booking.created",
+        "secret":          "{{process.env.GAS_PIPEDREAM_SECRET}}",
+        "fullName":        "{{steps.extract_booking_fields.$return_value.fullName}}",
+        "phoneNumber":     "{{steps.extract_booking_fields.$return_value.phoneNumber}}",
+        "unitNumber":      "{{steps.extract_booking_fields.$return_value.unitNumber}}",
+        "email":           "{{steps.extract_booking_fields.$return_value.email}}",
+        "bookedDate":      "{{steps.extract_booking_fields.$return_value.bookedDate}}",
+        "bookedTime":      "{{steps.extract_booking_fields.$return_value.bookedTime}}",
+        "calendarEventId": "{{steps.extract_booking_fields.$return_value.calendarEventId}}",
+        "bookingSource":   "{{steps.extract_booking_fields.$return_value.bookingSource}}"
       }
       ```
 - [ ] Click **Test** to send the request
 
-**Expected result:** The step output shows HTTP status 200 and a response body
-of:
+**Expected result:** The step output shows HTTP 200 and a response body of:
 ```json
 { "received": true, "email": "customer@example.com" }
 ```
-The customer email address should receive an email with the pre-filled form
-link within a few seconds.
+The customer email address should receive an intake form email within a few
+seconds. A new row should appear in the Bookings sheet with status `Intake Sent`.
+
+> Remember: GAS always returns HTTP 200 even for errors. Check the response body
+> for `{"error":"..."}` if something looks wrong. See the reference doc for the
+> full list of error response shapes.
 
 ---
 
@@ -151,19 +178,56 @@ link within a few seconds.
 
 - [ ] Create a real test booking via your Google Appointment Schedules booking
       page using a test email address you can check
-- [ ] Confirm the Calendar event is created with:
-      - A guest matching your test email
-      - A description containing `Phone:` and `Unit:` lines
+- [ ] Confirm the Calendar event is created with a guest matching your test email
+      and a description containing `Phone:` and `Unit Number:` lines
 - [ ] Wait up to 2 minutes for Pipedream to detect the new event
 - [ ] Open Pipedream and confirm the workflow ran successfully
-      (green checkmark on all steps in the event inspector)
+      (green checkmarks on all steps in the event inspector)
 - [ ] Check the test email inbox for the intake form email
-- [ ] Open the link in the email and confirm the form fields are pre-filled
-      with the correct name, phone, and unit
+- [ ] Open the form link and confirm the fields are pre-filled with the correct
+      name, phone, unit, and location (if applicable)
+- [ ] Confirm a new row appears in the Bookings sheet with the correct location,
+      name, email, date, time, and status `Intake Sent`
 
-**Expected result:** The customer receives a correctly addressed email. The
-embedded URL opens a Google Form with all three fields pre-populated. The
-Pipedream event inspector shows all steps succeeded with no errors.
+**Expected result:** Customer receives a correctly addressed intake form email.
+The Bookings sheet shows all 21 columns populated correctly for the new row.
+
+---
+
+## Stage 9 — Verify Stripe Completion Forwarding
+
+Before testing this stage, ensure all `STRIPE_*` Script Properties are set.
+
+- [ ] Create the Stripe Completion Pipedream workflow as described in Part 2 of
+      `booking-workflow-reference.md`
+- [ ] Set the Pipedream HTTP source URL as the Stripe webhook endpoint in
+      **Stripe Dashboard → Developers → Webhooks**
+- [ ] Trigger a test payment using the Stripe Checkout link sent in a lock-cut
+      email (you can use a Stripe test card)
+- [ ] Confirm Pipedream receives the `checkout.session.completed` event and
+      the `send_stripe_completion_to_gas` step returns `{"received":true}`
+- [ ] Confirm the Bookings sheet row is updated: `Stripe Payment ID` is set,
+      `Fee Paid` is `True`, and `Status` advances to `Pending Signature` (if
+      DocuSeal is not yet complete) or `Confirmed` (if both are complete)
+
+---
+
+## Stage 10 — Verify DocuSeal Completion Forwarding
+
+Before testing this stage, ensure all `DOCUSEAL_*` Script Properties are set.
+
+- [ ] Create the DocuSeal Completion Pipedream workflow as described in Part 3
+      of `booking-workflow-reference.md`
+- [ ] Set the Pipedream HTTP source URL as the DocuSeal webhook endpoint in
+      **DocuSeal → Settings → Webhooks**
+- [ ] Sign the release form using the signing link sent in a lock-cut email
+- [ ] Confirm Pipedream receives the `submission.completed` event and the
+      `send_docuseal_completion_to_gas` step returns `{"received":true}`
+- [ ] Confirm the Bookings sheet row is updated: `DocuSeal Document ID` is set,
+      `Signature Complete` is `True`, and `Status` advances to `Pending Payment`
+      (if Stripe is not yet complete) or `Confirmed` (if both are complete)
+- [ ] If both Stripe and DocuSeal are now complete, confirm the customer received
+      a final confirmation email and `Final Confirmation Sent` is `True`
 
 ---
 
@@ -182,26 +246,30 @@ Appointment Schedules does not match the regex. Update the regex label in the
 step code to match exactly.
 
 **`send_to_gas` response body contains `{"error":"Unauthorized"}`**
-The `GAS_PIPEDREAM_SECRET` environment variable and the `PIPEDREAM_SECRET`
-Script Property do not match. Re-copy both values and confirm they are
-character-for-character identical (watch for trailing spaces).
+The `GAS_PIPEDREAM_SECRET` environment variable and the `PIPEDREAM_SECRET` Script
+Property do not match. Re-copy both values and confirm they are
+character-for-character identical (watch for trailing spaces or newlines).
 
 **`send_to_gas` response body contains `{"error":"Missing required field: ..."}`**
-A field that `extract_booking_fields` was supposed to return is empty or missing.
-Re-test Step 1 in isolation and confirm all four fields appear in its output
-before re-testing Step 2.
+A required field is empty or missing. Re-test Step 1 in isolation and confirm
+all fields appear in its output before re-testing Step 2.
 
 **`send_to_gas` returns an HTML page instead of JSON**
 The deployment URL is wrong or the web app is not deployed as "Anyone". Verify
-the URL in Apps Script under **Manage deployments**, confirm access is set to
-"Anyone (even anonymous)", and check that `?source=pipedream` is appended to
-the URL in the step.
+the URL in Apps Script under **Manage deployments**, confirm access is "Anyone
+(even anonymous)", and check that `?source=pipedream` is appended to the URL.
 
-**Customer does not receive the email**
-Confirm the email address extracted by `extract_booking_fields` is correct by
-checking the step output. Check Gmail's Sent folder on the account that runs the
-Apps Script to confirm the email was dispatched. If sent but not received, check
-spam.
+**Location shows as empty or wrong in the Bookings sheet**
+The `bookingSource` value sent by Pipedream does not match any key in
+`CONFIG.LOCATION_MAP`. Check the GAS execution log for the warning
+`bookingSource not matched in LOCATION_MAP`. Update `bookingSource` in
+`extract_booking_fields` or add a new entry to `LOCATION_MAP` in `Config.gs`.
+
+**Customer does not receive the intake form email**
+Confirm the email address extracted by `extract_booking_fields` is correct.
+Check that `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL`, and `NOTIFICATION_EMAIL`
+are all set in Script Properties. Check the GAS execution log for
+`EmailService.send` errors.
 
 **Workflow did not trigger after booking**
 Pipedream polls the Calendar API on a schedule (typically every 1–15 minutes on

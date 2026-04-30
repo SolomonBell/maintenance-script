@@ -2,7 +2,18 @@
  * CalendarHandlers.gs
  * Functions for creating, updating, and reading Google Calendar events.
  *
- * Trigger setup:
+ * NOTE — ALTERNATIVE INTAKE PATH (not the current production flow)
+ * The production system uses Pipedream to detect new Calendar events and POST
+ * a structured payload to the Apps Script web app (handlePipedream in
+ * WebhookHandlers.gs). CalendarHandlers.onBookingCreated is a direct
+ * calendar-trigger alternative that bypasses Pipedream entirely.
+ *
+ * Use this path only if you want to replace Pipedream with a native Apps Script
+ * calendar trigger. Note that onBookingCreated calls buildPrefilledUrl without
+ * a locationPrefill argument, so the location pre-fill feature will not work
+ * without a code update.
+ *
+ * Trigger setup (only needed if using this alternative path):
  *   In the Apps Script editor go to Triggers (clock icon) > Add Trigger:
  *     Function:       onBookingCreated
  *     Event source:   From calendar

@@ -30,3 +30,6 @@ yarn-error.log*
 
 # Build output
 dist/
+
+# Claude Code
+.claude/

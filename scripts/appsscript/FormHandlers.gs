@@ -121,7 +121,7 @@ var FormHandlers = (function () {
           + '. No further action is required on your end.\n\n'
           + 'If you need to make changes or have questions, reply to this email.\n\n'
           + 'Thank you,\n'
-          + 'Reliable Storage',
+          + CONFIG.COMPANY_NAME,
         {
           htmlBody: 'Hi ' + fullName + ',<br><br>'
             + 'Your maintenance request'
@@ -137,7 +137,7 @@ var FormHandlers = (function () {
             + (unitNumber ? ' (' + unitNumber + ')' : '')
             + '. No further action is required on your end.<br><br>'
             + 'If you need to make changes or have questions, reply to this email.<br><br>'
-            + 'Thank you,<br>Reliable Storage',
+            + 'Thank you,<br>' + CONFIG.COMPANY_NAME,
         }
       );
       Logger.log('onSubmit: confirmation sent to ' + email);
@@ -233,14 +233,14 @@ var FormHandlers = (function () {
           + (unitNumber ? ' for unit ' + unitNumber : '')
           + '.\n\n'
           + 'Before we can confirm your appointment, please complete both steps below:\n\n'
-          + '  1. Pay the $50 lock cut fee:\n'
+          + '  1. Pay the ' + CONFIG.LOCK_CUT_FEE + ' lock cut fee:\n'
           + '     ' + paymentUrl + '\n\n'
           + '  2. Sign the release authorization form:\n'
           + '     ' + signingUrl + '\n\n'
           + 'Your appointment will be confirmed once both steps are complete.\n\n'
           + 'If you have questions, reply to this email.\n\n'
           + 'Thank you,\n'
-          + 'Reliable Storage',
+          + CONFIG.COMPANY_NAME,
         {
           htmlBody: 'Hi ' + lcFullName + ',<br><br>'
             + 'Thank you for submitting your maintenance request'
@@ -248,13 +248,13 @@ var FormHandlers = (function () {
             + (unitNumber ? ' for unit ' + unitNumber : '')
             + '.<br><br>'
             + 'Before we can confirm your appointment, please complete both steps below:<br><br>'
-            + '1. Pay the $50 lock cut fee<br>'
+            + '1. Pay the ' + CONFIG.LOCK_CUT_FEE + ' lock cut fee<br>'
             +   '<a href="' + paymentUrl + '">Complete payment now</a><br><br>'
             + '2. Sign the release authorization form<br>'
             +   '<a href="' + signingUrl + '">Sign the release form</a><br><br>'
             + 'Your appointment will be confirmed once both steps are complete.<br><br>'
             + 'If you have questions, reply to this email.<br><br>'
-            + 'Thank you,<br>Reliable Storage',
+            + 'Thank you,<br>' + CONFIG.COMPANY_NAME,
         }
       );
       Logger.log('onSubmit: lock-cut email sent to ' + email + ' — session ' + session.id + ', docuseal submitter ' + docusealResult[0].email);
