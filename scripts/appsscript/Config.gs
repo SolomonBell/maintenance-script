@@ -1,9 +1,8 @@
 /**
-
-* Config.gs
-* Central configuration constants.
-* Pull sensitive values from Script Properties, never hard-code them.
-  */
+ * Config.gs
+ * Central configuration constants.
+ * Pull sensitive values from Script Properties; never hard-code them.
+ */
 
 var CONFIG = {
   // Google Sheets

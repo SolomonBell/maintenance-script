@@ -1,18 +1,16 @@
 /**
-
-* WebhookHandlers.gs
-* Routes incoming POST webhook payloads to the correct service handler.
-* Called from doPost() in Code.gs.
-  */
+ * WebhookHandlers.gs
+ * Routes incoming POST webhook payloads to the correct service handler.
+ * Called from doPost() in Code.gs.
+ */
 
 var WebhookHandlers = (function () {
 
-/**
-
-* Main router. Inspects the request and delegates to the right handler.
-* @param {Object} e - The doPost event object.
-* @returns {TextOutput}
-  */
+  /**
+   * Main router. Inspects the request and delegates to the right handler.
+   * @param {Object} e - The doPost event object.
+   * @returns {TextOutput}
+   */
   function route(e) {
   try {
   var source = (e.parameter && e.parameter.source) || detectSource(e);
@@ -46,21 +44,26 @@ Logger.log('Docuseal event: ' + payload.event_type);
 return respond(200, { received: true });
 }
 
-/**
-
-* Handles booking payloads sent by Pipedream.
-*
-* Expected payload fields:
-* secret           {string} - Must match CONFIG.PIPEDREAM_SECRET.
-* event            {string} - Event type, e.g. "booking.created" (logged only).
-* fullName         {string} - Customer's full name.
-* phoneNumber      {string} - Customer's phone number.
-* unitNumber       {string} - Unit/apartment number.
-* email            {string} - Customer's email address.
-*
-* @param {Object} payload - Parsed JSON body from doPost.
-* @returns {TextOutput}
-  */
+  /**
+   * Handles booking payloads sent by Pipedream.
+   *
+   * Expected payload fields:
+   *   secret           {string} - Must match CONFIG.PIPEDREAM_SECRET.
+   *   event            {string} - "booking.created" for new bookings (logged only).
+   *   eventType        {string} - "stripe_checkout_completed" or "docuseal_submission_completed"
+   *                               for completion events; routes to the appropriate sub-handler.
+   *   fullName         {string} - Customer full name (required for booking.created).
+   *   email            {string} - Customer email address (required for booking.created).
+   *   phoneNumber      {string} - Customer phone (optional at booking time; collected via form).
+   *   unitNumber       {string} - Storage unit number (optional at booking time; collected via form).
+   *   bookedDate       {string} - Appointment date (YYYY-MM-DD).
+   *   bookedTime       {string} - Appointment time (HH:MM, local time).
+   *   calendarEventId  {string} - Google Calendar event ID.
+   *   bookingSource    {string} - Booking page title; must match a key in CONFIG.LOCATION_MAP.
+   *
+   * @param {Object} payload - Parsed JSON body from doPost.
+   * @returns {TextOutput}
+   */
   function handlePipedream(payload) {
   // 1. Authenticate — reject immediately if secret is missing or wrong.
   // Trim both sides to guard against whitespace in Script Properties or env vars.
@@ -111,14 +114,14 @@ if (!locationEntry) {
 var location      = locationEntry ? locationEntry.location      : (CONFIG.DEFAULT_LOCATION       || '');
 var locationGroup = locationEntry ? locationEntry.locationGroup : (CONFIG.DEFAULT_LOCATION_GROUP || '');
 
-// 3. Build the pre-filled intake form URL.
+// 4. Build the pre-filled intake form URL.
 // Only prefill Location for single-location booking pages (Groups 1-3).
 // Groups 4-5 cover multiple locations — customer must choose manually.
 var singleLocationGroups = { 'Group 1': true, 'Group 2': true, 'Group 3': true };
 var locationPrefill = singleLocationGroups[locationGroup] ? location : '';
 var formUrl = FormHandlers.buildPrefilledUrl(fullName, phoneNumber, unitNumber, email, locationPrefill);
 
-// 4. Send the email to the customer.
+// 5. Send the email to the customer.
 EmailService.send(
   email,
   (location ? location + ' ' : '') + fullName + ' Intake Form',
@@ -147,7 +150,7 @@ EmailService.send(
   }
 );
 
-// 5. Send internal notification.
+// 6. Send internal notification.
 var intakeDateTimeLine = (bookedDate || bookedTime)
   ? 'Date/Time: ' + (bookedDate || '') + (bookedTime ? ' at ' + bookedTime : '') + '\n'
   : '';
@@ -178,7 +181,7 @@ EmailService.notify(
   }
 );
 
-// 6. Append booking row to the Bookings sheet.
+// 7. Append booking row to the Bookings sheet.
 // Request Type and Notes are blank here; onFormSubmit will fill them in.
 var nameParts = Utils.splitFullName(fullName);
 SheetService.appendRow(CONFIG.SPREADSHEET_ID, CONFIG.BOOKINGS_SHEET_NAME, [
@@ -448,12 +451,12 @@ function checkAndFinalize(sheet, sheetRow, headers, email) {
   Logger.log('checkAndFinalize: manager notification sent for ' + email);
 }
 
-/**
-
-* Attempt to detect the webhook source from request headers or body.
-* @param {Object} e
-* @returns {string}
-  */
+  /**
+   * Attempts to detect the webhook source from request headers.
+   * Currently detects Stripe via the Stripe-Signature header.
+   * @param {Object} e
+   * @returns {string}
+   */
   function detectSource(e) {
   var headers = e.parameter || {};
   if (headers['Stripe-Signature']) return 'stripe';
