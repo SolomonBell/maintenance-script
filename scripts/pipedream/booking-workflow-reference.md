@@ -97,8 +97,8 @@ export default defineComponent({
     const phoneMatch = desc.match(/^Phone:\s*(.+)$/im);
     const unitMatch  = desc.match(/^Unit\s*(?:Number)?:\s*(.+)$/im);
 
-    const phoneNumber = phoneMatch?.[1]?.trim();
-    const unitNumber  = unitMatch?.[1]?.trim();
+    const phoneNumber = phoneMatch?.[1]?.trim() ?? '';
+    const unitNumber  = unitMatch?.[1]?.trim() ?? '';
 
     // Booking date, time, and calendar event ID from structured event fields.
     // dateTime is present for timed events; date is present for all-day events.
@@ -156,7 +156,7 @@ export default defineComponent({
 
 ```json
 {
-  "event":           "booking.created",
+  "eventType":       "booking.created",
   "secret":          "{{process.env.GAS_PIPEDREAM_SECRET}}",
   "fullName":        "{{steps.extract_booking_fields.$return_value.fullName}}",
   "phoneNumber":     "{{steps.extract_booking_fields.$return_value.phoneNumber}}",
@@ -193,30 +193,75 @@ for the `checkout.session.completed` event type.
 
 ### Step: send_stripe_completion_to_gas
 
-**Step type:** HTTP Request
+**Step type:** Run Node.js code
+**Step name:** `send_stripe_completion_to_gas`
 
-| Setting      | Value                                                                          |
-|--------------|--------------------------------------------------------------------------------|
-| Method       | POST                                                                           |
-| URL          | `{{process.env.GAS_WEB_APP_URL}}?source=pipedream` |
-| Content-Type | `application/json`                                                             |
+`customer_details` can be `null` on the initial webhook delivery, so a single
+template-variable path is not safe. This step extracts email through a chain of
+fallbacks and throws loudly if none resolve.
 
-#### Request body
+```javascript
+import { axios } from "@pipedream/platform";
 
-```json
-{
-  "secret":          "{{process.env.GAS_PIPEDREAM_SECRET}}",
-  "eventType":       "stripe_checkout_completed",
-  "email":           "{{steps.trigger.event.body.data.object.customer_email}}",
-  "stripeSessionId": "{{steps.trigger.event.body.data.object.id}}"
-}
+export default defineComponent({
+  async run({ steps, $ }) {
+    const session = steps.trigger.event.body?.data?.object;
+
+    if (!session) {
+      throw new Error(
+        "Stripe webhook body.data.object is missing. Raw body: "
+        + JSON.stringify(steps.trigger.event.body)
+      );
+    }
+
+    // Extract email with safe fallbacks — in order of preference.
+    // customer_email is set explicitly by Apps Script when creating the session.
+    // customer_details.email is filled by Stripe after checkout (may be null on first delivery).
+    // metadata.bookingEmail is the copy Apps Script stored in session metadata.
+    // client_reference_id is also set to the email by Apps Script.
+    const email =
+      session.customer_email          ||
+      session.customer_details?.email ||
+      session.metadata?.bookingEmail  ||
+      session.client_reference_id     ||
+      null;
+
+    if (!email) {
+      throw new Error(
+        "Could not extract customer email from Stripe session. "
+        + "customer_email: "   + session.customer_email + ", "
+        + "customer_details: " + JSON.stringify(session.customer_details) + ", "
+        + "metadata: "         + JSON.stringify(session.metadata)
+      );
+    }
+
+    const stripeSessionId = session.id;
+    if (!stripeSessionId) {
+      throw new Error("Missing session.id in Stripe payload.");
+    }
+
+    const response = await axios($, {
+      method: "POST",
+      url:    process.env.GAS_WEB_APP_URL + "?source=pipedream",
+      headers: { "Content-Type": "application/json" },
+      data: {
+        secret:          process.env.GAS_PIPEDREAM_SECRET,
+        eventType:       "stripe_checkout_completed",
+        email:           email,
+        stripeSessionId: stripeSessionId,
+      },
+    });
+
+    if (response?.error) {
+      throw new Error("GAS returned error: " + response.error);
+    }
+
+    return response;
+  },
+});
 ```
 
-> `customer_email` is the `customer_email` field set when the Checkout Session
-> was created. `id` is the session ID. Confirm the field paths match the actual
-> Stripe webhook payload shape visible in Pipedream's trigger inspector.
-
-**Expected success response:**
+**Expected success return value:**
 ```json
 { "received": true }
 ```
@@ -251,14 +296,14 @@ for this workflow. Listen for the `submission.completed` event type.
 {
   "secret":               "{{process.env.GAS_PIPEDREAM_SECRET}}",
   "eventType":            "docuseal_submission_completed",
-  "email":                "{{steps.trigger.event.body.submitters[0].email}}",
-  "docusealSubmissionId": "{{steps.trigger.event.body.id}}"
+  "email":                "{{steps.trigger.event.body.data.submitters[0].email}}",
+  "docusealSubmissionId": "{{steps.trigger.event.body.data.id}}"
 }
 ```
 
-> `submitters[0].email` is the customer's email (the first submitter). `id` is
-> the DocuSeal submission ID. Confirm paths against the actual DocuSeal webhook
-> payload visible in Pipedream's trigger inspector.
+> The DocuSeal webhook payload wraps the submission under `body.data`. `submitters[0].email`
+> is the customer's email (the first submitter). `id` is the DocuSeal submission ID.
+> Confirm paths against the actual payload visible in Pipedream's trigger inspector.
 
 **Expected success response:**
 ```json
@@ -289,9 +334,10 @@ In the Apps Script editor (*Deploy → Manage deployments*):
 | Who has access   | Anyone (even anonymous)  |
 | Deployment type  | Web app                  |
 
-> Always update the **same deployment** rather than creating a new one. Creating
-> a new deployment generates a new URL, which must then be updated in all three
-> Pipedream workflows.
+> Always update the **same deployment** rather than creating a new one. If you
+> must create a new deployment (which generates a new URL), update only the
+> `GAS_WEB_APP_URL` environment variable in Pipedream — all three workflows will
+> pick up the change automatically.
 
 ---
 
@@ -322,9 +368,10 @@ A fallback is to parse `Name:` from the description, but only add this if needed
 
 **Custom question labels changed.**
 If you rename "Phone" or "Unit Number" in Appointment Schedules, the regex
-returns null and the step throws. Update the regex label in
-`extract_booking_fields` to match. The error message includes the raw description
-to help diagnose.
+returns no match and phone/unit are sent as empty strings — the booking is still
+created and the customer fills those fields in on the intake form. If you need
+them captured at booking time, update the regex label in `extract_booking_fields`
+to match the new question name.
 
 **`bookingSource` not in LOCATION_MAP.**
 GAS logs a warning that includes the value received and all valid keys, then
@@ -341,6 +388,8 @@ processed Calendar event IDs in Sheets or a Pipedream Data Store and skip any
 ID already recorded.
 
 **`send_to_gas` returns an HTML page instead of JSON.**
-The deployment URL is wrong or the web app is not deployed as "Anyone". Verify
-the URL in Apps Script under **Manage deployments**, confirm access is "Anyone
-(even anonymous)", and check that `?source=pipedream` is appended to the URL.
+The `GAS_WEB_APP_URL` environment variable is wrong, or the web app is not
+deployed as "Anyone". Verify the URL in Apps Script under **Manage deployments**
+and confirm access is "Anyone (even anonymous)". Also confirm `GAS_WEB_APP_URL`
+does not itself include `?source=pipedream` — it is appended in each step's URL
+field.

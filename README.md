@@ -205,7 +205,7 @@ All three events are routed through Pipedream to the Apps Script web app endpoin
 
 | Event | Source | GAS handler | Key payload fields |
 |---|---|---|---|
-| `booking.created` | Google Calendar (new event) | `handlePipedream` | `secret`, `event`, `fullName`, `email`, `phoneNumber`, `unitNumber`, `bookedDate`, `bookedTime`, `calendarEventId`, `bookingSource` |
+| `booking.created` | Google Calendar (new event) | `handlePipedream` | `secret`, `eventType`, `fullName`, `email`, `bookedDate`, `bookedTime`, `calendarEventId`, `bookingSource`; `phoneNumber` and `unitNumber` are optional (blank if not collected at booking time) |
 | `stripe_checkout_completed` | Stripe (`checkout.session.completed`) | `handleStripeCompleted` | `secret`, `eventType`, `email`, `stripeSessionId` |
 | `docuseal_submission_completed` | DocuSeal (`submission.completed`) | `handleDocusealCompleted` | `secret`, `eventType`, `email`, `docusealSubmissionId` |
 

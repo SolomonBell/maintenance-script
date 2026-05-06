@@ -26,8 +26,9 @@ Visiting it in a browser returns `{"status":"ok"}`.
 
 > If you make any code changes to the Apps Script project after this point,
 > click **Manage deployments → Edit → Deploy** to update the same deployment.
-> Creating a new deployment changes the URL and requires updating all Pipedream
-> workflows.
+> If you must create a new deployment (generating a new URL), update only the
+> `GAS_WEB_APP_URL` environment variable in Pipedream — all three workflows pick
+> up the change automatically.
 
 ---
 
@@ -150,7 +151,7 @@ and print the raw event description.
 - [ ] Set the request body to:
       ```json
       {
-        "event":           "booking.created",
+        "eventType":       "booking.created",
         "secret":          "{{process.env.GAS_PIPEDREAM_SECRET}}",
         "fullName":        "{{steps.extract_booking_fields.$return_value.fullName}}",
         "phoneNumber":     "{{steps.extract_booking_fields.$return_value.phoneNumber}}",
@@ -187,8 +188,9 @@ seconds. A new row should appear in the Bookings sheet with status `Intake Sent`
 - [ ] Open Pipedream and confirm the workflow ran successfully
       (green checkmarks on all steps in the event inspector)
 - [ ] Check the test email inbox for the intake form email
-- [ ] Open the form link and confirm the fields are pre-filled with the correct
-      name, phone, unit, and location (if applicable)
+- [ ] Open the form link and confirm name is pre-filled; phone and unit are
+      pre-filled only if provided at booking time; location is pre-filled only
+      for single-location booking pages (Groups 1–3)
 - [ ] Confirm a new row appears in the Bookings sheet with the correct location,
       name, email, date, time, and status `Intake Sent`
 
@@ -242,12 +244,6 @@ account. Check the raw attendee object in the Pipedream trigger output. As a
 fallback, parse `Name:` from the description — see the edge cases section in
 `booking-workflow-reference.md`.
 
-**`extract_booking_fields` throws "missing fields: phoneNumber" or "unitNumber"**
-The description does not contain a line matching `Phone:` or `Unit:`. Check the
-raw description in the error output. Likely cause: the custom question label in
-Appointment Schedules does not match the regex. Update the regex label in the
-step code to match exactly.
-
 **`send_to_gas` response body contains `{"error":"Unauthorized"}`**
 The `GAS_PIPEDREAM_SECRET` environment variable and the `PIPEDREAM_SECRET` Script
 Property do not match. Re-copy both values and confirm they are
@@ -258,9 +254,10 @@ A required field is empty or missing. Re-test Step 1 in isolation and confirm
 all fields appear in its output before re-testing Step 2.
 
 **`send_to_gas` returns an HTML page instead of JSON**
-The deployment URL is wrong or the web app is not deployed as "Anyone". Verify
-the URL in Apps Script under **Manage deployments**, confirm access is "Anyone
-(even anonymous)", and check that `?source=pipedream` is appended to the URL.
+The `GAS_WEB_APP_URL` environment variable is wrong or the web app is not
+deployed as "Anyone". Verify the URL in Apps Script under **Manage deployments**
+and confirm access is "Anyone (even anonymous)". Also confirm `GAS_WEB_APP_URL`
+does not include `?source=pipedream` — it is appended in each step's URL field.
 
 **Location shows as empty or wrong in the Bookings sheet**
 The `bookingSource` value sent by Pipedream does not match any key in
