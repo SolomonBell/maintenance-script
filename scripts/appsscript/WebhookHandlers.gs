@@ -105,14 +105,21 @@ Logger.log('handlePipedream: event=' + (payload.event || 'unspecified') + ' emai
 
 // Resolve location before sending any emails.
 // bookingSource is the booking page title sent by Pipedream; it maps to Location and Location Group.
-// Unmatched or missing values fall back to DEFAULT_LOCATION / DEFAULT_LOCATION_GROUP.
+// An unmatched or missing bookingSource leaves location blank — no silent default is applied.
 var bookingSource = (payload.bookingSource || '').trim();
 var locationEntry = CONFIG.LOCATION_MAP[bookingSource] || null;
-if (!locationEntry) {
-  Logger.log('handlePipedream: bookingSource not matched in LOCATION_MAP ("' + bookingSource + '") — using defaults');
+var location      = '';
+var locationGroup = '';
+if (locationEntry) {
+  location      = locationEntry.location;
+  locationGroup = locationEntry.locationGroup;
+} else {
+  Logger.log(
+    'handlePipedream: bookingSource not in LOCATION_MAP — location left blank.'
+    + ' Received: "' + bookingSource + '".'
+    + ' Valid keys: ' + Object.keys(CONFIG.LOCATION_MAP).join(', ')
+  );
 }
-var location      = locationEntry ? locationEntry.location      : (CONFIG.DEFAULT_LOCATION       || '');
-var locationGroup = locationEntry ? locationEntry.locationGroup : (CONFIG.DEFAULT_LOCATION_GROUP || '');
 
 // 4. Build the pre-filled intake form URL.
 // Only prefill Location for single-location booking pages (Groups 1-3).

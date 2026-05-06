@@ -65,8 +65,8 @@ Schedules, update the regex labels in this step to match.
 
 **`bookingSource` note:** This field routes the booking to the correct location
 in Apps Script. Its value must exactly match a key in `CONFIG.LOCATION_MAP` in
-`Config.gs`. If it is absent or unrecognized, Apps Script falls back to
-`DEFAULT_LOCATION` / `DEFAULT_LOCATION_GROUP`.
+`Config.gs`. If it is absent or unrecognized, GAS logs a warning and writes the
+booking row with **Location and Location Group left blank** — no default is applied.
 
 How to populate `bookingSource` depends on your Calendar setup:
 
@@ -145,7 +145,7 @@ export default defineComponent({
 | Setting      | Value                                                                                   |
 |--------------|-----------------------------------------------------------------------------------------|
 | Method       | POST                                                                                    |
-| URL          | `https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?source=pipedream`          |
+| URL          | `{{process.env.GAS_WEB_APP_URL}}?source=pipedream`          |
 | Content-Type | `application/json`                                                                      |
 
 > **Important:** `source=pipedream` must be a **URL query parameter**, not a
@@ -198,7 +198,7 @@ for the `checkout.session.completed` event type.
 | Setting      | Value                                                                          |
 |--------------|--------------------------------------------------------------------------------|
 | Method       | POST                                                                           |
-| URL          | `https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?source=pipedream` |
+| URL          | `{{process.env.GAS_WEB_APP_URL}}?source=pipedream` |
 | Content-Type | `application/json`                                                             |
 
 #### Request body
@@ -242,7 +242,7 @@ for this workflow. Listen for the `submission.completed` event type.
 | Setting      | Value                                                                          |
 |--------------|--------------------------------------------------------------------------------|
 | Method       | POST                                                                           |
-| URL          | `https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?source=pipedream` |
+| URL          | `{{process.env.GAS_WEB_APP_URL}}?source=pipedream` |
 | Content-Type | `application/json`                                                             |
 
 #### Request body
@@ -272,9 +272,10 @@ for this workflow. Listen for the `submission.completed` event type.
 Set these under **Pipedream → Settings → Environment Variables**. The same value
 is used across all three workflows.
 
-| Variable               | Description                                                          |
-|------------------------|----------------------------------------------------------------------|
-| `GAS_PIPEDREAM_SECRET` | Shared secret. Must match `PIPEDREAM_SECRET` in GAS Script Properties exactly. |
+| Variable               | Description                                                                                                                              |
+|------------------------|------------------------------------------------------------------------------------------------------------------------------------------|
+| `GAS_WEB_APP_URL`      | The Apps Script web app URL. Used in all three workflow URL fields as `{{process.env.GAS_WEB_APP_URL}}?source=pipedream`. Do **not** include `?source=pipedream` in the variable itself. |
+| `GAS_PIPEDREAM_SECRET` | Shared secret. Must match `PIPEDREAM_SECRET` in GAS Script Properties exactly (no leading/trailing whitespace).                          |
 
 ---
 
@@ -326,10 +327,12 @@ returns null and the step throws. Update the regex label in
 to help diagnose.
 
 **`bookingSource` not in LOCATION_MAP.**
-GAS logs a warning, falls back to `DEFAULT_LOCATION` / `DEFAULT_LOCATION_GROUP`,
-and continues normally. The booking is still created; only location routing is
-affected. Review the `LOCATION_MAP` keys in `Config.gs` and confirm the value
-sent by Pipedream matches exactly (case-sensitive).
+GAS logs a warning that includes the value received and all valid keys, then
+writes the booking row with **Location and Location Group left blank**. No default
+is substituted. The booking is created and the flow continues, but the sheet row
+will have no location until manually corrected. Review the `LOCATION_MAP` keys in
+`Config.gs` and confirm the `bookingSource` constant in `extract_booking_fields`
+matches exactly (case-sensitive, including `&` vs `and`).
 
 **Duplicate sends on event touch.**
 The "New Event" trigger fires only on creation, so incidental edits do not

@@ -17,7 +17,8 @@ Reference: [`booking-workflow-reference.md`](booking-workflow-reference.md)
 - [ ] Set **Who has access:** Anyone (even anonymous)
 - [ ] Set **Type:** Web app
 - [ ] Click **Deploy** and copy the web app URL
-- [ ] Save the URL — you will need it in Stages 7, 9, and 10
+- [ ] Save the URL as the `GAS_WEB_APP_URL` environment variable in Pipedream
+      (**Pipedream → Settings → Environment Variables**) — you will reference it in Stages 7, 9, and 10
 
 **Expected result:** A URL of the form
 `https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec` is available.
@@ -54,8 +55,8 @@ set required to run the booking-created flow end-to-end:
 - [ ] `INTAKE_FORM_FIELD_REQUEST_TYPE` — entry ID for the Request Type field
 - [ ] `INTAKE_FORM_FIELD_NOTES` — entry ID for the Notes field
 - [ ] `INTAKE_FORM_FIELD_LOCATION` — entry ID for the Location field
-- [ ] `DEFAULT_LOCATION` — fallback location name
-- [ ] `DEFAULT_LOCATION_GROUP` — fallback location group
+- [ ] `DEFAULT_LOCATION` — reserved; unmapped bookings leave Location blank (not used for routing)
+- [ ] `DEFAULT_LOCATION_GROUP` — reserved; unmapped bookings leave Location Group blank (not used for routing)
 
 Set the remaining properties (`STRIPE_*`, `DOCUSEAL_*`) before testing
 Stages 9 and 10. See `.env.example` for the complete list with descriptions.
@@ -77,14 +78,18 @@ editor lists them under Script Properties.
 
 ## Stage 4 — Set the Pipedream Environment Variable
 
-Before configuring steps, add the shared secret:
+Before configuring steps, add both environment variables:
 
 - [ ] Go to Pipedream **Settings → Environment Variables**
+- [ ] Add variable: `GAS_WEB_APP_URL`
+- [ ] Set the value to the Apps Script web app URL from Stage 1
+      (e.g. `https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec`)
+      Do **not** include `?source=pipedream` in the variable — it is appended in each step's URL field
 - [ ] Add variable: `GAS_PIPEDREAM_SECRET`
 - [ ] Set the value to the exact same string as `PIPEDREAM_SECRET` in Script Properties — they must match character-for-character (watch for trailing whitespace)
 
-**Expected result:** `GAS_PIPEDREAM_SECRET` appears in the environment variables
-list. The value is masked after saving (this is expected).
+**Expected result:** Both `GAS_WEB_APP_URL` and `GAS_PIPEDREAM_SECRET` appear in
+the environment variables list. Values are masked after saving (this is expected).
 
 ---
 
@@ -140,9 +145,7 @@ and print the raw event description.
 - [ ] Select **HTTP Request**
 - [ ] Rename the step to `send_to_gas`
 - [ ] Set **Method:** POST
-- [ ] Set **URL:**
-      `https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?source=pipedream`
-      (replace `YOUR_DEPLOYMENT_ID` with the URL from Stage 1)
+- [ ] Set **URL:** `{{process.env.GAS_WEB_APP_URL}}?source=pipedream`
 - [ ] Set **Content-Type:** `application/json`
 - [ ] Set the request body to:
       ```json

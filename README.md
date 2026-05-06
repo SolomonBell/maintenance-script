@@ -93,7 +93,7 @@ Incoming Pipedream webhooks include a `bookingSource` field whose value must exa
 
 **Groups 4–5** are multi-location booking pages shared across two sites. Location pre-fill is intentionally omitted; the customer selects their specific location on the intake form.
 
-If `bookingSource` is absent or unrecognized, the booking falls back to `DEFAULT_LOCATION` / `DEFAULT_LOCATION_GROUP` (set in Script Properties). To add a new location, add a new entry to `LOCATION_MAP` in `Config.gs` and set up a matching booking page in Google Calendar.
+If `bookingSource` is absent or unrecognized, the booking row is written with **Location and Location Group left blank**. No default location is silently substituted. The GAS execution log records the exact value received and lists all valid `LOCATION_MAP` keys. To add a new location, add a new entry to `LOCATION_MAP` in `Config.gs` and set up a matching booking page in Google Calendar.
 
 ---
 
@@ -130,10 +130,28 @@ To set Script Properties in Apps Script:
 | `INTAKE_FORM_FIELD_REQUEST_TYPE` | Form entry ID for Request Type |
 | `INTAKE_FORM_FIELD_NOTES` | Form entry ID for Notes |
 | `INTAKE_FORM_FIELD_LOCATION` | Form entry ID for Location |
-| `DEFAULT_LOCATION` | Fallback location when `bookingSource` is unrecognized |
-| `DEFAULT_LOCATION_GROUP` | Fallback location group when `bookingSource` is unrecognized |
+| `DEFAULT_LOCATION` | Reserved — no longer used for routing. Unmapped bookings leave Location blank. |
+| `DEFAULT_LOCATION_GROUP` | Reserved — no longer used for routing. Unmapped bookings leave Location Group blank. |
 | `COMPANY_NAME` | Company name in outbound emails (defaults to `Reliable Storage` if not set) |
 | `LOCK_CUT_FEE` | Fee shown in lock-cut emails (defaults to `$50` if not set) |
+
+---
+
+## Pipedream Environment Variables
+
+Set these under **Pipedream → Settings → Environment Variables**. All three workflows use both variables.
+
+| Variable | Description |
+|---|---|
+| `GAS_WEB_APP_URL` | The Apps Script web app URL (`https://script.google.com/macros/s/…/exec`). Set once; referenced in every workflow's URL field as `{{process.env.GAS_WEB_APP_URL}}?source=pipedream`. Do **not** include `?source=pipedream` in the variable itself. |
+| `GAS_PIPEDREAM_SECRET` | Shared secret used to authenticate Pipedream payloads. Must match the `PIPEDREAM_SECRET` Script Property exactly — no leading or trailing whitespace. |
+
+In every Pipedream HTTP Request step:
+
+- **URL field:** `{{process.env.GAS_WEB_APP_URL}}?source=pipedream`
+- **`secret` field in JSON body:** `{{process.env.GAS_PIPEDREAM_SECRET}}`
+
+> `source=pipedream` must be a **URL query parameter**, not a JSON body field. The GAS router reads `e.parameter.source` from query parameters; the JSON body is parsed separately from `e.postData.contents`.
 
 ---
 
