@@ -82,11 +82,10 @@ if (payload.eventType === 'docuseal_submission_completed') {
 }
 
 // 3. Validate required booking fields.
-// booking.created only requires identity + calendar fields; phone and unit arrive later via form.
-var isBookingCreated = (payload.event || '').trim() === 'booking.created';
-var required = isBookingCreated
-  ? ['fullName', 'email']
-  : ['fullName', 'phoneNumber', 'unitNumber', 'email'];
+// phoneNumber and unitNumber are intentionally excluded — they are optional at booking time
+// and collected later via the intake form. Stripe and DocuSeal events are already routed
+// before this point, so this block only ever runs for booking.created payloads.
+var required = ['fullName', 'email', 'bookedDate', 'bookedTime', 'calendarEventId'];
 for (var i = 0; i < required.length; i++) {
   if (!payload[required[i]] || payload[required[i]].trim() === '') {
     return respond(400, { error: 'Missing required field: ' + required[i] });
