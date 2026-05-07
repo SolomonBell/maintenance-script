@@ -1,4 +1,4 @@
-# Reliable Storage Maintenance Booking System
+# Maintenance Script
 
 An end-to-end maintenance appointment automation for a self-storage facility. Customers book via Google Appointment Schedules; the system handles intake, confirmation, payment, e-signature, and status tracking — with all state persisted in Google Sheets and all email delivered through SendGrid.
 

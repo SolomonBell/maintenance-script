@@ -1,4 +1,4 @@
-# Reliable Storage – Manager Quick Guide
+# Maintenance Script – Manager Quick Guide
 
 **Who this is for:** Reliable Storage managers
 **Reading time:** ~3 minutes
@@ -77,7 +77,7 @@ Use this script as a guide when recording a short Loom screen recording to train
 
 **[Record your screen showing the Google Sheet and Calendar]**
 
-> "Hey team, quick walkthrough of how our maintenance booking system works.
+> "Hey team, quick walkthrough of how our Maintenance Script works.
 >
 > When a customer submits a request on our website, the system automatically handles everything — confirmation email, payment, any forms they need to sign. You don't have to do any of that manually.
 >
