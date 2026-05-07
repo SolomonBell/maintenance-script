@@ -30,8 +30,7 @@ var CONFIG = {
   // Google Sheets
   BOOKINGS_SHEET_NAME: PropertiesService.getScriptProperties().getProperty('BOOKINGS_SHEET_NAME'),
 
-  // Location defaults — used when bookingSource is absent or unrecognised.
-  // Set DEFAULT_LOCATION and DEFAULT_LOCATION_GROUP in Script Properties.
+  // Reserved — no longer used for routing. Unmapped bookings leave Location and Location Group blank.
   DEFAULT_LOCATION:       PropertiesService.getScriptProperties().getProperty('DEFAULT_LOCATION'),
   DEFAULT_LOCATION_GROUP: PropertiesService.getScriptProperties().getProperty('DEFAULT_LOCATION_GROUP'),
 

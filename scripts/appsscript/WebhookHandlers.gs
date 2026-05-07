@@ -49,9 +49,9 @@ return respond(200, { received: true });
    *
    * Expected payload fields:
    *   secret           {string} - Must match CONFIG.PIPEDREAM_SECRET.
-   *   event            {string} - "booking.created" for new bookings (logged only).
-   *   eventType        {string} - "stripe_checkout_completed" or "docuseal_submission_completed"
-   *                               for completion events; routes to the appropriate sub-handler.
+   *   eventType        {string} - "booking.created" (falls through to booking creation logic),
+   *                               "stripe_checkout_completed", or "docuseal_submission_completed"
+   *                               (routes to the appropriate sub-handler).
    *   fullName         {string} - Customer full name (required for booking.created).
    *   email            {string} - Customer email address (required for booking.created).
    *   phoneNumber      {string} - Customer phone (optional at booking time; collected via form).
@@ -100,7 +100,7 @@ var bookedDate      = (payload.bookedDate      || '').trim();
 var bookedTime      = (payload.bookedTime      || '').trim();
 var calendarEventId = (payload.calendarEventId || '').trim();
 
-Logger.log('handlePipedream: event=' + (payload.event || 'unspecified') + ' email=' + email + ' calendarEventId=' + calendarEventId);
+Logger.log('handlePipedream: eventType=' + (payload.eventType || 'unspecified') + ' email=' + email + ' calendarEventId=' + calendarEventId);
 
 // Resolve location before sending any emails.
 // bookingSource is the booking page title sent by Pipedream; it maps to Location and Location Group.
