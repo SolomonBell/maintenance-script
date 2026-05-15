@@ -3,6 +3,9 @@
 **Who this is for:** Reliable Storage managers and supervisors
 **Reading time:** ~15 minutes
 
+> **Video walkthrough:** [Manager Walkthrough — Maintenance Script](https://youtu.be/v4nrowu-jsk)
+> A short screen recording covering the Bookings sheet, request statuses, and manager workflow.
+
 ---
 
 ## Table of Contents

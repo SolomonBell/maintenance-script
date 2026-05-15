@@ -3,6 +3,7 @@
 An end-to-end maintenance appointment automation for a self-storage facility. Customers book via Google Appointment Schedules; the system handles intake, confirmation, payment, e-signature, and status tracking — with all state persisted in Google Sheets and all email delivered through SendGrid.
 
 > For the non-technical manager-facing guide covering daily workflow, email notifications, status meanings, and troubleshooting, see [docs/manager-guide.md](docs/manager-guide.md).
+> A short [manager walkthrough video](https://youtu.be/v4nrowu-jsk) is also available.
 
 ---
 
