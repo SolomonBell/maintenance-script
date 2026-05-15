@@ -2,6 +2,8 @@
 
 An end-to-end maintenance appointment automation for a self-storage facility. Customers book via Google Appointment Schedules; the system handles intake, confirmation, payment, e-signature, and status tracking — with all state persisted in Google Sheets and all email delivered through SendGrid.
 
+> For the non-technical manager-facing guide covering daily workflow, email notifications, status meanings, and troubleshooting, see [docs/manager-guide.md](docs/manager-guide.md).
+
 ---
 
 ## Tech Stack
@@ -178,7 +180,7 @@ In every Pipedream HTTP Request step:
 | 17 | Signature Complete | `handleDocusealCompleted` |
 | 18 | Calendar Event ID | `handlePipedream` on booking created |
 | 19 | Stripe Payment ID | `handleStripeCompleted` |
-| 20 | DocuSeal Document ID | `handleDocusealCompleted` |
+| 20 | Docuseal Document ID | `handleDocusealCompleted` |
 | 21 | Final Confirmation Sent | `onFormSubmit` (standard path) or `checkAndFinalize` (lock cut path) |
 
 Phone and unit are collected from the booking payload when available. If the customer books without answering those questions, the fields are left blank at booking creation and filled in when the intake form is submitted.

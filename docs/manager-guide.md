@@ -86,7 +86,7 @@ Lock cuts follow the same steps 1–6 above. At step 6, the system detects that 
 | 11 | Customer | Pays the lock cut fee through the Stripe link |
 | 12 | System (Stripe + Pipedream + Apps Script) | Records payment; writes Stripe Payment ID; sets Fee Paid = True |
 | 13 | Customer | Signs the release form through the DocuSeal link |
-| 14 | System (DocuSeal + Pipedream + Apps Script) | Records signature; writes DocuSeal Document ID; sets Signature Complete = True |
+| 14 | System (DocuSeal + Pipedream + Apps Script) | Records signature; writes Docuseal Document ID; sets Signature Complete = True |
 | 15 | System (Apps Script) | Once **both** Fee Paid and Signature Complete are True: sends final confirmation email and manager notification; sets status to **Confirmed** |
 | 16 | Manager | Shows up at the appointment; marks status to **Completed** when done |
 
@@ -105,7 +105,7 @@ The manager inbox that receives internal notifications is the address in the `NO
 | | |
 |---|---|
 | **Who receives it** | The customer who booked the appointment |
-| **When it is sent** | Immediately when Pipedream forwards the new booking to the system |
+| **When it is sent** | As soon as Pipedream detects and forwards the new booking to the system. Pipedream polls Google Calendar on a schedule, so there is typically a short delay of a few minutes between when the customer books and when this email is sent. |
 | **What triggers it** | A new Google Calendar booking event detected by Pipedream |
 | **What it is for** | Asks the customer to complete the intake form so the team knows the request details |
 | **What it contains** | A personalized link to the Google intake form, pre-filled with the customer's name and email (and phone/unit if provided at booking time; location if it is a single-location booking page) |
@@ -195,7 +195,7 @@ The manager inbox that receives internal notifications is the address in the `NO
 The following events update the Bookings sheet silently with no email sent:
 
 - **Stripe payment alone completes** (before the signature): The sheet is updated (Stripe Payment ID written, Fee Paid = True, status → Pending Signature), but no email is sent to anyone. The final confirmation goes out only after both steps are complete.
-- **DocuSeal signature alone completes** (before payment): The sheet is updated (DocuSeal Document ID written, Signature Complete = True, status → Pending Payment), but no email is sent. Same reason.
+- **DocuSeal signature alone completes** (before payment): The sheet is updated (Docuseal Document ID written, Signature Complete = True, status → Pending Payment), but no email is sent. Same reason.
 
 ---
 
@@ -224,7 +224,7 @@ Each row in the Bookings sheet is one customer booking. Here is what every colum
 | **Signature Complete** | True once the customer's DocuSeal signature is confirmed | System, automatically |
 | **Calendar Event ID** | Internal identifier linking this booking to the Google Calendar event | System, automatically |
 | **Stripe Payment ID** | The Stripe Checkout Session ID, recorded when payment is confirmed | System, automatically |
-| **DocuSeal Document ID** | The DocuSeal submission ID, recorded when the release form is signed | System, automatically |
+| **Docuseal Document ID** | The DocuSeal submission ID, recorded when the release form is signed | System, automatically |
 | **Final Confirmation Sent** | True once the final appointment confirmation email has been sent to the customer | System, automatically |
 
 ### What to look at day-to-day
@@ -335,7 +335,7 @@ Look at the Stripe Payment ID column for this row. If it is blank and the custom
 
 **Signature completed but status did not update to Pending Payment or Confirmed**
 
-Same as above, but for DocuSeal. If the DocuSeal Document ID column is blank after the customer says they signed, let the system administrator know to check Pipedream and the DocuSeal webhook.
+Same as above, but for DocuSeal. If the Docuseal Document ID column is blank after the customer says they signed, let the system administrator know to check Pipedream and the DocuSeal webhook.
 
 ---
 
@@ -400,7 +400,7 @@ Managers can and should edit certain things in the sheet. Other columns are mana
 | **Fee Paid** | Set automatically when Stripe confirms payment. Editing this will not generate the final confirmation email — it only changes the displayed value. |
 | **Signature Complete** | Same as Fee Paid — set automatically by DocuSeal. Manually changing it does not trigger the confirmation flow. |
 | **Stripe Payment ID** | A unique identifier the system uses to link this row to a specific Stripe transaction. Editing it can break payment reconciliation. |
-| **DocuSeal Document ID** | Same — links to a specific DocuSeal submission. |
+| **Docuseal Document ID** | Same — links to a specific DocuSeal submission. |
 | **Calendar Event ID** | Internal link to the Google Calendar booking event. Leave as-is. |
 | **Final Confirmation Sent** | Tracks whether the final email went out. Changing it does not resend the email. |
 | **Fee Required / Signature Required** | Set by the system based on the customer's intake form responses. |
